@@ -27,10 +27,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from pathlib import Path as _Path
+
+from qvartools.hamiltonians.integrals import load_fcidump_integrals
 from qvartools.hamiltonians.molecular import (
     MolecularHamiltonian,
     compute_molecular_integrals,
 )
+
+_FCIDUMP_DIR = _Path(__file__).parent.parent / "hamiltonians" / "fcidump"
 
 __all__ = [
     "MOLECULE_REGISTRY",
@@ -434,6 +439,95 @@ def _build_info(
     }
 
 
+def _make_2fe2s(device: str = "cpu") -> tuple[MolecularHamiltonian, dict[str, Any]]:
+    """Create [2Fe-2S] Hamiltonian from Li & Chan (2017) FCIDUMP integrals.
+
+    Active space: CAS(30e, 20o) — 40 qubits (Jordan-Wigner).
+    Basis: TZP-DKH (scalar relativistic).
+    DMRG reference: -116.6056091 Ha (bond dim 8000, Ma et al. 2025).
+
+    Same integrals used by IBM SQD (Robledo-Moreno et al., Science Advances
+    2025) and Reinholdt et al. critical limitations study (JCTC 2025).
+
+    Parameters
+    ----------
+    device : str, optional
+        Torch device (default ``"cpu"``).
+
+    Returns
+    -------
+    tuple
+        ``(hamiltonian, info_dict)``.
+    """
+    fcidump_path = _FCIDUMP_DIR / "2Fe2S.fcidump"
+    if not fcidump_path.exists():
+        raise FileNotFoundError(
+            f"FCIDUMP file not found: {fcidump_path}\n"
+            "Download from: https://github.com/jrm874/sqd_data_repository"
+        )
+    integrals = load_fcidump_integrals(fcidump_path)
+    ham = MolecularHamiltonian(integrals, device=device)
+    info: dict[str, Any] = {
+        "name": "2fe2s",
+        "n_qubits": 40,
+        "basis": "TZP-DKH",
+        "geometry": None,
+        "charge": -2,
+        "spin": 0,
+        "n_orbitals": 20,
+        "n_alpha": 15,
+        "n_beta": 15,
+        "dmrg_reference": -116.6056091,
+        "source": "Li & Chan, JCTC 2017 / jrm874/sqd_data_repository",
+    }
+    return ham, info
+
+
+def _make_4fe4s(device: str = "cpu") -> tuple[MolecularHamiltonian, dict[str, Any]]:
+    """Create [4Fe-4S] Hamiltonian from Li & Chan (2017) FCIDUMP integrals.
+
+    Active space: CAS(54e, 36o) — 72 qubits (Jordan-Wigner).
+    Hilbert space: ~8.86×10^15 determinants.
+    Basis: TZP-DKH (scalar relativistic).
+
+    Same integrals used in IBM SQD 77-qubit experiment (Robledo-Moreno et
+    al., Science Advances 2025). The 77-qubit count includes 5 ancilla
+    qubits in the quantum circuit; the active-space Hamiltonian itself spans
+    72 spin-orbitals.
+
+    Parameters
+    ----------
+    device : str, optional
+        Torch device (default ``"cpu"``).
+
+    Returns
+    -------
+    tuple
+        ``(hamiltonian, info_dict)``.
+    """
+    fcidump_path = _FCIDUMP_DIR / "4Fe4S.fcidump"
+    if not fcidump_path.exists():
+        raise FileNotFoundError(
+            f"FCIDUMP file not found: {fcidump_path}\n"
+            "Download from: https://github.com/jrm874/sqd_data_repository"
+        )
+    integrals = load_fcidump_integrals(fcidump_path)
+    ham = MolecularHamiltonian(integrals, device=device)
+    info: dict[str, Any] = {
+        "name": "4fe4s",
+        "n_qubits": 72,
+        "basis": "TZP-DKH",
+        "geometry": None,
+        "charge": -2,
+        "spin": 0,
+        "n_orbitals": 36,
+        "n_alpha": 27,
+        "n_beta": 27,
+        "source": "Li & Chan, JCTC 2017 / jrm874/sqd_data_repository",
+    }
+    return ham, info
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -510,6 +604,19 @@ MOLECULE_REGISTRY: dict[str, dict[str, Any]] = {
         "n_qubits": 26,
         "description": "Hydrogen sulfide (STO-3G)",
         "basis": "sto-3g",
+    },
+    # --- Iron-sulfur clusters (FCIDUMP, Li & Chan JCTC 2017 / IBM SQD 2024) ---
+    "2fe2s": {
+        "factory": _make_2fe2s,
+        "n_qubits": 40,
+        "description": "[2Fe-2S] cluster CAS(30e,20o) TZP-DKH — IBM SQD benchmark",
+        "basis": "TZP-DKH",
+    },
+    "4fe4s": {
+        "factory": _make_4fe4s,
+        "n_qubits": 72,
+        "description": "[4Fe-4S] cluster CAS(54e,36o) TZP-DKH — IBM SQD 77-qubit benchmark",
+        "basis": "TZP-DKH",
     },
 }
 

@@ -31,6 +31,7 @@ from qvartools.hamiltonians.hamiltonian import Hamiltonian
 from qvartools.hamiltonians.integrals import (
     MolecularIntegrals,
     compute_molecular_integrals,
+    load_fcidump_integrals,
 )
 from qvartools.hamiltonians.molecular import MolecularHamiltonian
 from qvartools.hamiltonians.pauli_string import PauliString
@@ -43,6 +44,7 @@ __all__ = [
     "MolecularHamiltonian",
     "MolecularIntegrals",
     "compute_molecular_integrals",
+    "load_fcidump_integrals",
     "HeisenbergHamiltonian",
     "TransverseFieldIsing",
 ]
