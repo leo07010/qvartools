@@ -43,7 +43,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/George930502/qvartools"
-Documentation = "https://qvartools.readthedocs.io"
+Documentation = "https://qvartools.readthedocs.io/en/stable/"
 Repository = "https://github.com/George930502/qvartools"
 Changelog = "https://github.com/George930502/qvartools/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/George930502/qvartools/issues"
