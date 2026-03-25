@@ -1,7 +1,7 @@
 # qvartools
 
 [![CI](https://github.com/George930502/qvartools/actions/workflows/ci.yml/badge.svg)](https://github.com/George930502/qvartools/actions/workflows/ci.yml)
-[![Documentation](https://readthedocs.org/projects/qvartools/badge/?version=stable)](https://qvartools.readthedocs.io/en/stable/)
+[![Documentation](https://readthedocs.org/projects/qvartools/badge/?version=latest)](https://qvartools.readthedocs.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
@@ -144,12 +144,12 @@ Each subpackage is self-contained with a clean public API. Lower-level modules h
 
 ## Documentation
 
-Full documentation is available at [qvartools.readthedocs.io](https://qvartools.readthedocs.io/en/stable/).
+Full documentation is available at [qvartools.readthedocs.io](https://qvartools.readthedocs.io/en/latest/).
 
-- [Installation Guide](https://qvartools.readthedocs.io/en/stable/getting_started/installation.html)
-- [Quickstart Tutorial](https://qvartools.readthedocs.io/en/stable/getting_started/quickstart.html)
-- [API Reference](https://qvartools.readthedocs.io/en/stable/api/index.html)
-- [Developer Guide](https://qvartools.readthedocs.io/en/stable/developer_guide/index.html)
+- [Installation Guide](https://qvartools.readthedocs.io/en/latest/getting_started/installation.html)
+- [Quickstart Tutorial](https://qvartools.readthedocs.io/en/latest/getting_started/quickstart.html)
+- [API Reference](https://qvartools.readthedocs.io/en/latest/api/index.html)
+- [Developer Guide](https://qvartools.readthedocs.io/en/latest/developer_guide/index.html)
 
 ## Contributing
 
