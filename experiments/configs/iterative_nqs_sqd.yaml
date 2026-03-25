@@ -1,0 +1,38 @@
+# =============================================================================
+# Iterative NQS + SQD Pipeline  (iterative_nqs_sqd.py)
+#
+# Iteratively trains a neural quantum state (NQS) and solves the ground
+# state via Sample-based Quantum Diagonalisation (SQD), using hardware-
+# informed sampling to refine configurations at each iteration.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Iteration control ------------------------------------------------------
+max_iterations: 30            # Maximum NQS-SQD refinement iterations
+convergence_tol: 1.0e-6       # Energy convergence tolerance (Hartree)
+
+# ---- Sampling ---------------------------------------------------------------
+n_samples: 5000               # NQS samples drawn per iteration
+n_batches: 5                  # Batches for subspace construction
+max_configs_per_batch: 5000   # Maximum configurations kept per batch
+
+# ---- NQS training -----------------------------------------------------------
+nqs_train_epochs: 50          # Training epochs per NQS iteration
+nqs_lr: 1.0e-3               # Learning rate for NQS optimiser
+
+# ---- NQS architecture -------------------------------------------------------
+embed_dim: 64                 # Transformer embedding dimension
+n_heads: 4                    # Number of attention heads
+n_layers: 4                   # Number of transformer layers
+temperature: 1.0              # Sampling temperature
+
+# ---- IBM solver -------------------------------------------------------------
+use_ibm_solver: true          # Use IBM's SQD solver backend
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information

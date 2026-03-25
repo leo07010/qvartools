@@ -1,0 +1,27 @@
+# =============================================================================
+# HF-Only Krylov Pipeline  (hf_only_krylov.py)
+#
+# Baseline / ablation: uses only the Hartree-Fock initial state (no NF,
+# no Direct-CI) and builds the Krylov subspace (SKQD) from that single
+# reference.  Equivalent to a "Trotterized" Krylov approach.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Pipeline mode ----------------------------------------------------------
+skip_nf_training: true        # No NF training in this pipeline
+subspace_mode: skqd           # Subspace method: skqd
+
+# ---- SKQD parameters -------------------------------------------------------
+max_krylov_dim: 15            # Maximum Krylov subspace dimension
+shots_per_krylov: 100000      # Shots (samples) used per Krylov vector
+
+# ---- HF-only flag -----------------------------------------------------------
+use_hf_only: true             # Use Hartree-Fock-only initial state (no Direct-CI)
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information

@@ -1,0 +1,39 @@
+# =============================================================================
+# Iterative NQS + Krylov Pipeline  (iterative_nqs_krylov.py)
+#
+# Iteratively trains a neural quantum state (NQS) and builds a Krylov
+# subspace (SKQD), using hardware-informed sampling to refine the basis
+# at each iteration.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Iteration control ------------------------------------------------------
+max_iterations: 10            # Maximum NQS-SKQD refinement iterations
+energy_tol: 1.0e-5            # Energy convergence tolerance (Hartree)
+
+# ---- Sampling ---------------------------------------------------------------
+n_samples_per_iter: 5000      # NQS samples drawn per iteration
+n_batches: 5                  # Batches for subspace construction
+max_configs_per_batch: 5000   # Maximum configurations kept per batch
+
+# ---- NQS training -----------------------------------------------------------
+nqs_train_epochs: 30          # Training epochs per NQS iteration
+nqs_lr: 1.0e-3               # Learning rate for NQS optimiser
+
+# ---- NQS architecture -------------------------------------------------------
+embed_dim: 64                 # Transformer embedding dimension
+n_heads: 4                    # Number of attention heads
+n_layers: 4                   # Number of transformer layers
+temperature: 1.0              # Sampling temperature
+
+# ---- Krylov parameters ------------------------------------------------------
+krylov_max_new: 200           # Maximum new Krylov vectors per iteration
+krylov_n_ref: 5               # Number of reference states for Krylov build
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information

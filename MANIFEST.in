@@ -1,0 +1,8 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include CITATION.cff
+recursive-include src/qvartools *.py *.pyi
+recursive-include docs *.rst *.py *.md *.png *.svg
+prune tests
+prune experiments

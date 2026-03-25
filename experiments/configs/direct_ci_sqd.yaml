@@ -1,0 +1,26 @@
+# =============================================================================
+# Direct-CI SQD Pipeline  (direct_ci_sqd.py)
+#
+# Skips normalizing-flow training entirely and solves the ground state via
+# the Sample-based Quantum Diagonalisation (SQD) method using CI-generated
+# determinant configurations directly.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Pipeline mode ----------------------------------------------------------
+skip_nf_training: true        # Skip NF training; use Direct-CI configurations
+subspace_mode: sqd            # Subspace method: sqd
+
+# ---- SQD parameters --------------------------------------------------------
+sqd_num_batches: 5            # Number of sample batches for SQD solver
+sqd_self_consistent_iters: 5  # Self-consistent SQD iterations
+sqd_use_spin_symmetry: true   # Enforce spin symmetry in SQD solver
+sqd_noise_rate: 0.05          # Bitflip noise rate for sample augmentation
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information

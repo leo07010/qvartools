@@ -1,0 +1,39 @@
+# =============================================================================
+# Flow-Only Krylov Pipeline (Ablation)  (flow_only_krylov.py)
+#
+# Ablation study: trains a normalizing-flow model and builds the Krylov
+# subspace (SKQD) using *only* the NF-generated basis, skipping the
+# Direct-CI merge step.  Useful for isolating the NF contribution.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Pipeline mode ----------------------------------------------------------
+skip_nf_training: false       # NF training is required for this ablation
+subspace_mode: skqd           # Subspace method: skqd
+
+# ---- Training loss weights --------------------------------------------------
+teacher_weight: 0.5           # Weight for teacher (KL-divergence) loss term
+physics_weight: 0.4           # Weight for physics-informed energy loss term
+entropy_weight: 0.1           # Weight for entropy regularisation term
+
+# ---- Training parameters ----------------------------------------------------
+max_epochs: 400               # Maximum training epochs
+min_epochs: 100               # Minimum training epochs before early stopping
+samples_per_batch: 2000       # Number of samples drawn per training batch
+nf_hidden_dims: [256, 256]    # Hidden layer sizes for normalizing-flow network
+nqs_hidden_dims: [256, 256, 256, 256]  # Hidden layer sizes for NQS network
+
+# ---- SKQD parameters -------------------------------------------------------
+max_krylov_dim: 15            # Maximum Krylov subspace dimension
+shots_per_krylov: 100000      # Shots (samples) used per Krylov vector
+
+# ---- Ablation flag ----------------------------------------------------------
+use_nf_only_basis: true       # Skip Direct-CI merge; use NF-only basis
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information

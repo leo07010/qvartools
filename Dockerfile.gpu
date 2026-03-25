@@ -1,0 +1,48 @@
+FROM nvidia/cuda:12.6.3-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# System deps + Python 3.11
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-dev python3.11-venv \
+    build-essential libhdf5-dev curl && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install uv for fast dep resolution
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy project files
+COPY pyproject.toml README.md ./
+COPY src/ src/
+
+# Upgrade pip (>= 24.0 required by cudaq)
+RUN python -m pip install --upgrade pip
+
+# Install torch cu126 (matches CUDA 12.6 base, cusparse ~12.5 aligns with cudaq)
+RUN uv pip install --system --no-cache \
+    torch --index-url https://download.pytorch.org/whl/cu126 && \
+    uv pip install --system --no-cache ".[full,gpu,dev]"
+
+# Install CUDA-Q + qiskit quantum deps in one resolver pass to avoid conflicts
+RUN pip install --no-cache-dir \
+    cudaq \
+    "qiskit-addon-sqd>=0.12" \
+    "ffsim>=0.0.70" \
+    "qiskit>=1.0"
+
+# Copy remaining files
+COPY experiments/ experiments/
+COPY tests/ tests/
+
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+CMD ["python", "-m", "pytest", "tests/", "-v"]

@@ -1,0 +1,33 @@
+# =============================================================================
+# Direct-CI Krylov Pipeline  (direct_ci_krylov.py)
+#
+# Skips normalizing-flow training entirely and builds the Krylov subspace
+# (SKQD) directly from CI-generated determinant configurations.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Pipeline mode ----------------------------------------------------------
+skip_nf_training: true        # Skip NF training; use Direct-CI configurations
+subspace_mode: skqd           # Subspace method: skqd
+
+# ---- SKQD parameters -------------------------------------------------------
+max_krylov_dim: 15            # Maximum Krylov subspace dimension
+shots_per_krylov: 100000      # Shots (samples) used per Krylov vector
+
+# ---- Basis management -------------------------------------------------------
+max_accumulated_basis: 4096   # Cap on total accumulated basis configurations
+use_diversity_selection: true # Enable diversity-based configuration selection
+max_diverse_configs: 2048     # Maximum configurations kept after diversity filter
+
+# ---- Residual expansion -----------------------------------------------------
+use_residual_expansion: true  # Enable iterative residual basis expansion
+residual_iterations: 8        # Number of residual expansion iterations
+residual_configs_per_iter: 150  # Configurations added per residual iteration
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information

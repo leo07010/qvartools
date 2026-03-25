@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "qvartools: Quantum Variational Toolkit"
+type: software
+authors:
+  - name: George Chang
+version: 0.0.0
+date-released: "2026-03-26"
+license: MIT
+repository-code: "https://github.com/George930502/qvartools"
+keywords:
+  - quantum chemistry
+  - variational methods
+  - neural quantum states
+  - normalizing flows
+  - Krylov methods
+  - quantum diagonalization
+  - sample-based quantum diagonalization
+abstract: >-
+  A unified Python package for quantum variational methods applied to
+  molecular ground-state energy estimation. Consolidates normalizing-flow
+  guided neural quantum states (NF-NQS), sample-based quantum
+  diagonalization (SQD), and sample-based Krylov quantum diagonalization
+  (SKQD) into reusable, well-scoped modules.

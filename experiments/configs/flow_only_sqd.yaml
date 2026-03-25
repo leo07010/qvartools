@@ -1,0 +1,41 @@
+# =============================================================================
+# Flow-Only SQD Pipeline (Ablation)  (flow_only_sqd.py)
+#
+# Ablation study: trains a normalizing-flow model and solves the ground
+# state via SQD using *only* the NF-generated basis, skipping the
+# Direct-CI merge step.  Useful for isolating the NF contribution.
+# =============================================================================
+
+# ---- Molecule ---------------------------------------------------------------
+molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
+
+# ---- Pipeline mode ----------------------------------------------------------
+skip_nf_training: false       # NF training is required for this ablation
+subspace_mode: sqd            # Subspace method: sqd
+
+# ---- Training loss weights --------------------------------------------------
+teacher_weight: 0.5           # Weight for teacher (KL-divergence) loss term
+physics_weight: 0.4           # Weight for physics-informed energy loss term
+entropy_weight: 0.1           # Weight for entropy regularisation term
+
+# ---- Training parameters ----------------------------------------------------
+max_epochs: 400               # Maximum training epochs
+min_epochs: 100               # Minimum training epochs before early stopping
+samples_per_batch: 2000       # Number of samples drawn per training batch
+nf_hidden_dims: [256, 256]    # Hidden layer sizes for normalizing-flow network
+nqs_hidden_dims: [256, 256, 256, 256]  # Hidden layer sizes for NQS network
+
+# ---- SQD parameters --------------------------------------------------------
+sqd_num_batches: 5            # Number of sample batches for SQD solver
+sqd_self_consistent_iters: 5  # Self-consistent SQD iterations
+sqd_use_spin_symmetry: true   # Enforce spin symmetry in SQD solver
+sqd_noise_rate: 0.05          # Bitflip noise rate for sample augmentation
+
+# ---- Ablation flag ----------------------------------------------------------
+use_nf_only_basis: true       # Skip Direct-CI merge; use NF-only basis
+
+# ---- Hardware ---------------------------------------------------------------
+device: auto                  # Torch device: auto (detect cuda/cpu), cpu, cuda
+
+# ---- Output -----------------------------------------------------------------
+verbose: true                 # Print detailed progress information
