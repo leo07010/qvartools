@@ -1,0 +1,14 @@
+# Pre-commit hooks for qvartools.
+# Compatible with both pre-commit (https://pre-commit.com) and
+# prek (https://github.com/prek-no/prek) — a faster Rust reimplementation.
+#
+# Install:  pre-commit install   OR   prek install
+# Run all:  pre-commit run --all-files   OR   prek run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format

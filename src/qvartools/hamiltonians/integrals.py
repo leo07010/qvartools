@@ -10,14 +10,23 @@ returns a populated ``MolecularIntegrals`` instance.
 
 from __future__ import annotations
 
+import logging
+import os
+import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
 __all__ = [
     "MATRIX_ELEMENT_TOL",
     "MolecularIntegrals",
+    "cached_compute_molecular_integrals",
+    "clear_integral_cache",
     "compute_molecular_integrals",
+    "get_integral_cache",
 ]
 
 MATRIX_ELEMENT_TOL: float = 1e-12
@@ -187,3 +196,109 @@ def compute_molecular_integrals(
         n_alpha=n_alpha,
         n_beta=n_beta,
     )
+
+
+# ---------------------------------------------------------------------------
+# Persistent cache via joblib
+# ---------------------------------------------------------------------------
+
+_DEFAULT_CACHE_DIR = os.path.join(
+    os.environ.get("QVARTOOLS_CACHE_DIR", os.path.expanduser("~/.cache/qvartools")),
+    "integrals",
+)
+
+
+def get_integral_cache(
+    cache_dir: str | None = None,
+) -> Callable[..., MolecularIntegrals]:
+    """Return a cached version of :func:`compute_molecular_integrals`.
+
+    Uses ``joblib.Memory`` for transparent disk-based caching of PySCF
+    integral computations.  Repeated calls with the same arguments
+    return instantly from disk.
+
+    Parameters
+    ----------
+    cache_dir : str or None, optional
+        Directory for cached results.  Defaults to
+        ``~/.cache/qvartools/integrals`` (overridable via
+        ``QVARTOOLS_CACHE_DIR`` environment variable).
+
+    Returns
+    -------
+    callable
+        A cached version of ``compute_molecular_integrals`` with the
+        same signature.
+    """
+    try:
+        from joblib import Memory
+    except ImportError as exc:
+        raise ImportError(
+            "joblib is required for integral caching. "
+            "Install it with: pip install joblib"
+        ) from exc
+
+    location = cache_dir if cache_dir is not None else _DEFAULT_CACHE_DIR
+    memory = Memory(location, verbose=0)
+    cached_fn = memory.cache(compute_molecular_integrals)
+    logger.info("Integral cache enabled at %s", location)
+    return cached_fn
+
+
+# Module-level default cached function (lazy init)
+_default_cached_fn: Callable[..., MolecularIntegrals] | None = None
+
+
+def cached_compute_molecular_integrals(
+    geometry: list[tuple[str, tuple[float, float, float]]],
+    basis: str = "sto-3g",
+    charge: int = 0,
+    spin: int = 0,
+) -> MolecularIntegrals:
+    """Cached version of :func:`compute_molecular_integrals`.
+
+    Identical interface, but results are persisted to disk via
+    ``joblib.Memory``.  The default cache directory is
+    ``~/.cache/qvartools/integrals``.
+
+    Parameters
+    ----------
+    geometry : list of (str, (float, float, float))
+        Molecular geometry.
+    basis : str, optional
+        Basis set name (default ``"sto-3g"``).
+    charge : int, optional
+        Net charge (default ``0``).
+    spin : int, optional
+        2S (default ``0``).
+
+    Returns
+    -------
+    MolecularIntegrals
+        Cached or freshly computed integrals.
+    """
+    global _default_cached_fn  # noqa: PLW0603
+    if _default_cached_fn is None:
+        _default_cached_fn = get_integral_cache()
+    return _default_cached_fn(geometry, basis=basis, charge=charge, spin=spin)
+
+
+def clear_integral_cache(cache_dir: str | None = None) -> None:
+    """Remove all cached integral data.
+
+    Parameters
+    ----------
+    cache_dir : str or None, optional
+        Cache directory to clear.  Defaults to the same directory
+        used by :func:`get_integral_cache`.
+    """
+    location = cache_dir if cache_dir is not None else _DEFAULT_CACHE_DIR
+    # Safety: refuse to delete directories that don't look like a cache
+    if "qvartools" not in location and "cache" not in location.lower():
+        raise ValueError(
+            f"Refusing to delete '{location}' — path does not contain "
+            f"'qvartools' or 'cache'. Pass an explicit cache directory."
+        )
+    if os.path.isdir(location):
+        shutil.rmtree(location)
+        logger.info("Integral cache cleared at %s", location)
