@@ -64,7 +64,7 @@ class ConnectionCache:
         if max_size < 1:
             raise ValueError(f"max_size must be >= 1, got {max_size}")
         self.max_size: int = max_size
-        self._cache: dict[int, tuple[torch.Tensor, torch.Tensor]] = {}
+        self._cache: dict[int | tuple[int, ...], tuple[torch.Tensor, torch.Tensor]] = {}
         self._hits: int = 0
         self._misses: int = 0
         self._powers: torch.Tensor | None = None
@@ -94,27 +94,25 @@ class ConnectionCache:
 
     _MAX_SITES_INT64 = 63  # int64 can represent 2^0 .. 2^62 without overflow
 
-    def _hash(self, config: torch.Tensor) -> int:
-        """Convert a binary configuration to an integer hash.
+    def _hash(self, config: torch.Tensor) -> int | tuple[int, ...]:
+        """Convert a binary configuration to a hashable key.
 
-        Raises
-        ------
-        ValueError
-            If ``n_sites`` exceeds 63 (int64 overflow).  For larger
-            systems use :func:`config_integer_hash` which splits into
-            ``(hi, lo)`` tuples.
+        For ``n_sites <= 63`` returns a single ``int`` (powers-of-2 hash).
+        For ``n_sites >= 64`` falls back to a ``tuple[int, ...]`` to avoid
+        int64 overflow.
         """
         n = config.shape[0]
         if n > self._MAX_SITES_INT64:
-            raise ValueError(
-                f"ConnectionCache supports at most {self._MAX_SITES_INT64} sites "
-                f"(got {n}). Use config_integer_hash for larger systems."
-            )
+            return tuple(config.long().tolist())
         powers = self._get_powers(n, config.device)
         return int((config.to(torch.int64) * powers).sum().item())
 
-    def hash_batch(self, configs: torch.Tensor) -> torch.Tensor:
-        """Hash a batch of configurations via a single matmul.
+    def hash_batch(self, configs: torch.Tensor) -> torch.Tensor | list[tuple[int, ...]]:
+        """Hash a batch of configurations.
+
+        For ``n_sites <= 63`` uses a single matmul and returns an int64
+        tensor.  For ``n_sites >= 64`` falls back to per-config tuple
+        keys and returns a list.
 
         Parameters
         ----------
@@ -123,20 +121,12 @@ class ConnectionCache:
 
         Returns
         -------
-        torch.Tensor
-            Integer hashes, shape ``(n_configs,)``, dtype ``int64``.
-
-        Raises
-        ------
-        ValueError
-            If ``n_sites`` exceeds 63 (int64 overflow).
+        torch.Tensor or list
+            Integer hashes (tensor) or tuple keys (list).
         """
         n_sites = configs.shape[1]
         if n_sites > self._MAX_SITES_INT64:
-            raise ValueError(
-                f"ConnectionCache supports at most {self._MAX_SITES_INT64} sites "
-                f"(got {n_sites}). Use config_integer_hash for larger systems."
-            )
+            return [tuple(row.long().tolist()) for row in configs]
         powers = self._get_powers(n_sites, configs.device)
         return configs.to(torch.int64) @ powers
 
@@ -157,10 +147,13 @@ class ConnectionCache:
             ``None`` otherwise.  Cache hits are promoted to
             most-recently-used.
         """
-        hashes = self.hash_batch(configs)
+        raw_hashes = self.hash_batch(configs)
+        hashes = (
+            raw_hashes.tolist() if isinstance(raw_hashes, torch.Tensor) else raw_hashes
+        )
         results: list[tuple[torch.Tensor, torch.Tensor] | None] = []
-        for h in hashes.tolist():
-            key = int(h)
+        for h in hashes:
+            key = int(h) if isinstance(h, (int, float)) else h
             if key in self._cache:
                 self._hits += 1
                 self._touch(key)

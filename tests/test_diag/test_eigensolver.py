@@ -135,15 +135,15 @@ class TestAdaptiveDispatch:
         np.testing.assert_allclose(vals, numpy_vals[:2], atol=1e-8)
 
     def test_medium_uses_davidson(self) -> None:
-        """Matrix n=800 with davidson_threshold=500 should use Davidson.
+        """Matrix n=300 with davidson_threshold=200 should use Davidson.
 
         Verify correctness: eigenvalues match dense solve.
         """
         rng = np.random.default_rng(42)
-        A = rng.standard_normal((800, 800))
+        A = rng.standard_normal((300, 300))
         H = A + A.T
-        S = np.eye(800)
-        vals, _ = solve_generalized_eigenvalue(H, S, k=2, davidson_threshold=500)
+        S = np.eye(300)
+        vals, _ = solve_generalized_eigenvalue(H, S, k=2, davidson_threshold=200)
         numpy_vals = np.sort(np.linalg.eigvalsh(H))
         np.testing.assert_allclose(vals, numpy_vals[:2], atol=1e-4)
 

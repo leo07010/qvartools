@@ -222,12 +222,17 @@ def _solve_davidson(
 
     if is_identity:
         H_work = H_dense
+        L = None
     else:
         # Transform to standard form: L^{-1} H L^{-T} where S = L L^T
+        # Use solve_triangular to avoid forming explicit L^{-1} (saves O(n^2) memory)
         try:
             L = scipy.linalg.cholesky(S_dense, lower=True)
-            L_inv = scipy.linalg.solve_triangular(L, np.eye(L.shape[0]), lower=True)
-            H_work = L_inv @ H_dense @ L_inv.T
+            # Step 1: temp = L^{-1} H  (solve L @ temp = H)
+            temp = scipy.linalg.solve_triangular(L, H_dense, lower=True)
+            # Step 2: H_work = temp @ L^{-T} = (L^{-1} temp^T)^T
+            # Since H is symmetric: H_work = L^{-1} H L^{-T} is also symmetric
+            H_work = scipy.linalg.solve_triangular(L, temp.T, lower=True).T
         except scipy.linalg.LinAlgError:
             logger.warning("Cholesky failed for S; falling back to dense eigh.")
             return _solve_dense(H, S, k)
@@ -239,9 +244,9 @@ def _solve_davidson(
         logger.warning("Davidson solver failed; falling back to dense eigh.")
         return _solve_dense(H, S, k)
 
-    if not is_identity:
-        # Back-transform eigenvectors: v_original = L^{-T} v_standard
-        eigenvectors = L_inv.T @ eigenvectors
+    if L is not None:
+        # Back-transform: v_original = L^{-T} v_standard
+        eigenvectors = scipy.linalg.solve_triangular(L.T, eigenvectors, lower=False)
 
     logger.debug("Davidson solver used for n=%d, k=%d", H_dense.shape[0], k)
     return eigenvalues, eigenvectors
