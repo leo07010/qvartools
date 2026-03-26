@@ -27,6 +27,7 @@ __all__ = [
     "gpu_eigh",
     "gpu_eigsh",
     "gpu_solve_fermion",
+    "mixed_precision_eigh",
 ]
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,106 @@ def gpu_eigh(matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     eigenvalues, eigenvectors = np.linalg.eigh(matrix)
     logger.debug("gpu_eigh: used NumPy fallback (matrix size %d)", matrix.shape[0])
     return eigenvalues, eigenvectors
+
+
+# ---------------------------------------------------------------------------
+# Mixed-precision eigendecomposition
+# ---------------------------------------------------------------------------
+
+# Threshold below which FP32 rounding is negligible — skip mixed precision
+_MIXED_PREC_MIN_SIZE = 64
+
+import torch  # noqa: E402
+
+
+def mixed_precision_eigh(
+    H: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Eigendecomposition with FP32 solve + FP64 Rayleigh quotient refinement.
+
+    For matrices larger than 64x64, solves in float32 (leveraging TF32
+    matmul on NVIDIA GPUs for ~10x speedup), then refines eigenvalues
+    via Rayleigh quotient in float64 to recover full precision.
+
+    For small matrices or float64 input on CPU, delegates directly to
+    ``torch.linalg.eigh`` in float64.
+
+    Parameters
+    ----------
+    H : torch.Tensor
+        Real symmetric matrix, shape ``(n, n)``.  Any dtype accepted;
+        output is always float64.
+
+    Returns
+    -------
+    eigenvalues : torch.Tensor
+        Eigenvalues sorted ascending, shape ``(n,)``, dtype float64,
+        on CPU.
+    eigenvectors : torch.Tensor
+        Corresponding eigenvectors as columns, shape ``(n, n)``,
+        dtype float64, on CPU.
+
+    Notes
+    -----
+    ``torch.linalg.eigh`` has a known issue with float32 on GPU for
+    large low-rank matrices (may produce NaN/Inf).  This function
+    detects such failures and falls back to float64 automatically.
+
+    Reference: Higham & Mary, "Mixed Precision Algorithms in Numerical
+    Linear Algebra", Acta Numerica (2022).
+    """
+    n = H.shape[0]
+    device = H.device
+
+    # Symmetrize to eliminate floating-point asymmetry
+    H = 0.5 * (H + H.T)
+
+    # For small matrices or already-FP64 on CPU: direct FP64 solve
+    if n <= _MIXED_PREC_MIN_SIZE or (H.dtype == torch.float64 and device.type == "cpu"):
+        H_fp64 = H.to(dtype=torch.float64)
+        vals, vecs = torch.linalg.eigh(H_fp64)
+        order = torch.argsort(vals)
+        return vals[order].cpu(), vecs[:, order].cpu()
+
+    # --- Mixed precision path ---
+    H_fp64 = H.to(dtype=torch.float64, device=device)
+
+    # Step 1: FP32 solve for speed
+    H_fp32 = H_fp64.to(dtype=torch.float32)
+    try:
+        vals_fp32, vecs_fp32 = torch.linalg.eigh(H_fp32)
+
+        # Validate: check for NaN/Inf (known FP32 GPU bug)
+        if not torch.isfinite(vals_fp32).all() or not torch.isfinite(vecs_fp32).all():
+            raise RuntimeError("FP32 eigh produced non-finite values")
+
+    except (RuntimeError, torch.linalg.LinAlgError):
+        logger.warning("FP32 eigh failed; falling back to FP64.")
+        vals_fp64, vecs_fp64 = torch.linalg.eigh(H_fp64)
+        order = torch.argsort(vals_fp64)
+        return vals_fp64[order].cpu(), vecs_fp64[:, order].cpu()
+
+    # Step 2: Rayleigh quotient refinement in FP64
+    vecs_fp64 = vecs_fp32.to(dtype=torch.float64)
+    Hv = H_fp64 @ vecs_fp64  # (n, n) @ (n, n) in FP64
+    # E_i = v_i^T H v_i / (v_i^T v_i)
+    numerator = (vecs_fp64 * Hv).sum(dim=0)  # diag(V^T H V)
+    denominator = (vecs_fp64 * vecs_fp64).sum(dim=0)  # diag(V^T V)
+    vals_refined = numerator / denominator
+
+    # Sort by refined eigenvalues
+    order = torch.argsort(vals_refined)
+    vals_out = vals_refined[order]
+    vecs_out = vecs_fp64[:, order]
+
+    logger.debug(
+        "mixed_precision_eigh: n=%d, device=%s, max_refinement_delta=%.2e",
+        n,
+        device,
+        (vals_refined - vals_fp32.to(torch.float64)).abs().max().item(),
+    )
+
+    return vals_out.cpu(), vecs_out.cpu()
 
 
 # ---------------------------------------------------------------------------
