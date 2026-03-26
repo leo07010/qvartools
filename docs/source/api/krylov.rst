@@ -9,7 +9,7 @@ diagonalization (SKQD) and basis expansion methods.
 Core SKQD
 ----------
 
-.. autoclass:: qvartools.krylov.basis.skqd.SampleBasedKrylovDiagonalization
+.. autoclass:: qvartools.krylov.basis.skqd.ClassicalKrylovDiagonalization
    :members:
    :show-inheritance:
 
@@ -19,7 +19,7 @@ Core SKQD
 Flow-Guided SKQD
 -----------------
 
-.. autoclass:: qvartools.krylov.basis.flow_guided.FlowGuidedSKQD
+.. autoclass:: qvartools.krylov.basis.flow_guided.FlowGuidedKrylovDiag
    :members:
    :show-inheritance:
 

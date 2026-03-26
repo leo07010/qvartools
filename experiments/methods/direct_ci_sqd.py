@@ -62,14 +62,21 @@ def main() -> None:
     )
 
     parser = create_base_parser("Pure SQD: Direct-CI (HF+S+D) -> noise -> S-CORE.")
-    parser.add_argument("--sqd-num-batches", type=int, default=None,
-                        help="Number of SQD batches.")
-    parser.add_argument("--sqd-self-consistent-iters", type=int, default=None,
-                        help="Number of S-CORE self-consistent iterations.")
-    parser.add_argument("--sqd-noise-rate", type=float, default=None,
-                        help="Shot noise rate for SQD.")
-    parser.add_argument("--verbose", action="store_true", default=None,
-                        help="Enable verbose logging.")
+    parser.add_argument(
+        "--sqd-num-batches", type=int, default=None, help="Number of SQD batches."
+    )
+    parser.add_argument(
+        "--sqd-self-consistent-iters",
+        type=int,
+        default=None,
+        help="Number of S-CORE self-consistent iterations.",
+    )
+    parser.add_argument(
+        "--sqd-noise-rate", type=float, default=None, help="Shot noise rate for SQD."
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", default=None, help="Enable verbose logging."
+    )
     args, config = load_config(parser)
 
     device = config.get("device", "auto")
@@ -163,8 +170,9 @@ def main() -> None:
     print(f"Noise rate      : {noise_rate}")
     print(f"Total shots     : {total_shots}")
 
-    final_energy = pipeline.results.get("final_energy",
-                                        pipeline.results.get("combined_energy"))
+    final_energy = pipeline.results.get(
+        "final_energy", pipeline.results.get("combined_energy")
+    )
     error_mha = pipeline.results.get("error_mha")
     if error_mha is None and final_energy is not None:
         error_mha = (final_energy - exact_energy) * 1000.0

@@ -11,7 +11,7 @@ molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
 
 # ---- Pipeline mode ----------------------------------------------------------
 skip_nf_training: false       # If true, skip NF training and use Direct-CI
-subspace_mode: skqd           # Subspace method: skqd or sqd
+subspace_mode: classical_krylov  # Subspace method: classical_krylov or sqd
 
 # ---- Training loss weights --------------------------------------------------
 teacher_weight: 0.5           # Weight for teacher (KL-divergence) loss term

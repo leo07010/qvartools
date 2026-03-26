@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: Rename `SampleBasedKrylovDiagonalization` to `ClassicalKrylovDiagonalization` (ADR-001)
+- **BREAKING**: Rename `FlowGuidedSKQD` to `FlowGuidedKrylovDiag` (ADR-001)
+- **BREAKING**: Default `subspace_mode` changed from `"skqd"` to `"classical_krylov"`
+- `subspace_mode="skqd"` now routes to `QuantumCircuitSKQD` (real CUDA-Q SKQD)
+- Old class names kept as deprecated aliases until v0.1.0
+
+### Added
+- `TransformerAsNQS` adapter: enables `AutoregressiveTransformer` in NF training pipeline
+- `NQSWithSampling` adapter: enables any `NeuralQuantumState` in HI training pipeline
+- `qvartools._logging` module with `configure_logging()` and `get_logger()`
+- `QVARTOOLS_LOG_LEVEL` environment variable for log level control
+- CI: mypy type checking job, coverage threshold enforcement
+- ADR-001 decision record at `docs/decisions/`
+
+### Fixed
+- `TransformerNFSampler._build_nqs()` used wrong parameter name `hidden_dim` instead of `hidden_dims`
+
 ## [0.0.0] - 2026-03-26
 
 ### Added

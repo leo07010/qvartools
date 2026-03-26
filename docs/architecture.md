@@ -49,7 +49,7 @@ The `FlowGuidedKrylovPipeline` executes four stages sequentially:
 ```
 Stage 1: TRAIN              Stage 2: SELECT           Stage 3: EXPAND          Stage 4: REFINE
 ------------------          -----------------         -----------------        -----------------
-PhysicsGuidedFlow   --->    DiversitySelector  --->   ResidualExpander   --->  FlowGuidedSKQD
+PhysicsGuidedFlow   --->    DiversitySelector  --->   ResidualExpander   --->  FlowGuidedKrylovDiag
 Trainer                                               or SelectedCI
                                                       Expander
 Input:                      Input:                    Input:                   Input:
@@ -91,7 +91,7 @@ Both iterate until the energy improvement per iteration falls below a threshold.
 
 ### Stage 4: SKQD Refinement
 
-The `FlowGuidedSKQD` solver seeds the Krylov subspace with the NF-expanded basis and iteratively constructs Krylov vectors via time evolution e^{-iHt}|psi>. At each step it samples configurations from the evolved state, builds the projected Hamiltonian and overlap matrices, regularizes the overlap, and solves the generalized eigenvalue problem.
+The `FlowGuidedKrylovDiag` solver seeds the Krylov subspace with the NF-expanded basis and iteratively constructs Krylov vectors via time evolution e^{-iHt}|psi>. At each step it samples configurations from the evolved state, builds the projected Hamiltonian and overlap matrices, regularizes the overlap, and solves the generalized eigenvalue problem.
 
 ## Key Abstractions
 

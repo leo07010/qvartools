@@ -39,20 +39,45 @@ def detect_device() -> str:
 def get_training_params(n_configs: int) -> dict:
     """Scale training hyperparameters based on Hilbert-space size."""
     if n_configs <= 10:
-        return dict(max_epochs=100, min_epochs=30, samples_per_batch=500,
-                    nf_hidden_dims=[128, 128], nqs_hidden_dims=[128, 128, 128])
+        return dict(
+            max_epochs=100,
+            min_epochs=30,
+            samples_per_batch=500,
+            nf_hidden_dims=[128, 128],
+            nqs_hidden_dims=[128, 128, 128],
+        )
     elif n_configs <= 300:
-        return dict(max_epochs=150, min_epochs=50, samples_per_batch=1000,
-                    nf_hidden_dims=[128, 128], nqs_hidden_dims=[128, 128, 128])
+        return dict(
+            max_epochs=150,
+            min_epochs=50,
+            samples_per_batch=1000,
+            nf_hidden_dims=[128, 128],
+            nqs_hidden_dims=[128, 128, 128],
+        )
     elif n_configs <= 2000:
-        return dict(max_epochs=200, min_epochs=80, samples_per_batch=1500,
-                    nf_hidden_dims=[256, 256], nqs_hidden_dims=[256, 256, 256])
+        return dict(
+            max_epochs=200,
+            min_epochs=80,
+            samples_per_batch=1500,
+            nf_hidden_dims=[256, 256],
+            nqs_hidden_dims=[256, 256, 256],
+        )
     elif n_configs <= 5000:
-        return dict(max_epochs=300, min_epochs=100, samples_per_batch=2000,
-                    nf_hidden_dims=[256, 256], nqs_hidden_dims=[256, 256, 256])
+        return dict(
+            max_epochs=300,
+            min_epochs=100,
+            samples_per_batch=2000,
+            nf_hidden_dims=[256, 256],
+            nqs_hidden_dims=[256, 256, 256],
+        )
     else:
-        return dict(max_epochs=400, min_epochs=150, samples_per_batch=3000,
-                    nf_hidden_dims=[512, 512], nqs_hidden_dims=[512, 512, 512])
+        return dict(
+            max_epochs=400,
+            min_epochs=150,
+            samples_per_batch=3000,
+            nf_hidden_dims=[512, 512],
+            nqs_hidden_dims=[512, 512, 512],
+        )
 
 
 def get_noise_rate(n_qubits: int) -> float:
@@ -136,14 +161,12 @@ def main() -> None:
     entropy_weight = config.get("entropy_weight", 0.1)
     max_epochs = config.get("max_epochs", train_defaults["max_epochs"])
     min_epochs = config.get("min_epochs", train_defaults["min_epochs"])
-    samples_per_batch = config.get("samples_per_batch",
-                                   train_defaults["samples_per_batch"])
-    nf_hidden_dims = config.get("nf_hidden_dims",
-                                train_defaults["nf_hidden_dims"])
-    nqs_hidden_dims = config.get("nqs_hidden_dims",
-                                 train_defaults["nqs_hidden_dims"])
-    sqd_num_batches = config.get("sqd_num_batches",
-                                 sqd_defaults["sqd_num_batches"])
+    samples_per_batch = config.get(
+        "samples_per_batch", train_defaults["samples_per_batch"]
+    )
+    nf_hidden_dims = config.get("nf_hidden_dims", train_defaults["nf_hidden_dims"])
+    nqs_hidden_dims = config.get("nqs_hidden_dims", train_defaults["nqs_hidden_dims"])
+    sqd_num_batches = config.get("sqd_num_batches", sqd_defaults["sqd_num_batches"])
 
     print(f"Noise rate: {noise_rate}")
     print(f"SQD batches: {sqd_num_batches}")
@@ -222,8 +245,9 @@ def main() -> None:
     print(f"Noise rate           : {noise_rate}")
     print(f"Total shots          : {total_shots}")
 
-    final_energy = pipeline.results.get("final_energy",
-                                        pipeline.results.get("combined_energy"))
+    final_energy = pipeline.results.get(
+        "final_energy", pipeline.results.get("combined_energy")
+    )
     error_mha = pipeline.results.get("error_mha")
     if error_mha is None and final_energy is not None:
         error_mha = (final_energy - exact_energy) * 1000.0

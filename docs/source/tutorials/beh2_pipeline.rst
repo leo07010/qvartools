@@ -63,7 +63,7 @@ Try running different pipeline variants on BeH2 to compare:
    # DCI-SKQD (no NF training)
    dci_config = PipelineConfig(
        skip_nf_training=True,
-       subspace_mode="skqd",
+       subspace_mode="classical_krylov",
    )
    dci_pipeline = FlowGuidedKrylovPipeline(
        hamiltonian=hamiltonian,

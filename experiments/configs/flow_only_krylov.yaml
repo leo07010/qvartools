@@ -11,7 +11,7 @@ molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
 
 # ---- Pipeline mode ----------------------------------------------------------
 skip_nf_training: false       # NF training is required for this ablation
-subspace_mode: skqd           # Subspace method: skqd
+subspace_mode: classical_krylov  # Subspace method: classical_krylov
 
 # ---- Training loss weights --------------------------------------------------
 teacher_weight: 0.5           # Weight for teacher (KL-divergence) loss term

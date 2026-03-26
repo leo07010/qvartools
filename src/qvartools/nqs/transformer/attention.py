@@ -118,8 +118,8 @@ class CausalSelfAttention(nn.Module):
         # KV cache handling
         if self._cache_enabled:
             if self._k_cache is not None:
-                k = torch.cat([self._k_cache, k], dim=2)
-                v = torch.cat([self._v_cache, v], dim=2)
+                k = torch.cat([self._k_cache, k], dim=2)  # type: ignore[list-item]
+                v = torch.cat([self._v_cache, v], dim=2)  # type: ignore[list-item]
             self._k_cache = k.detach()
             self._v_cache = v.detach()
 

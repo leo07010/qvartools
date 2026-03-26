@@ -43,11 +43,15 @@ def main() -> None:
     # --- Parse CLI / YAML config ---
     parser = create_base_parser("HI+NQS+SQD: iterative NQS + subspace diag.")
     parser.add_argument(
-        "--max-iterations", type=int, default=None,
+        "--max-iterations",
+        type=int,
+        default=None,
         help="Maximum outer iterations.",
     )
     parser.add_argument(
-        "--n-samples", type=int, default=None,
+        "--n-samples",
+        type=int,
+        default=None,
         help="NQS samples per iteration.",
     )
     parser.add_argument("--verbose", action="store_true", default=None)
@@ -62,9 +66,7 @@ def main() -> None:
     print(f"Molecule       : {mol_info['name']}")
     print(f"Qubits         : {mol_info['n_qubits']}")
     print(f"Max iterations : {config.get('max_iterations', 10)}")
-    n_samp = config.get(
-        "n_samples_per_iter", config.get("n_samples", 5000)
-    )
+    n_samp = config.get("n_samples_per_iter", config.get("n_samples", 5000))
     print(f"Samples/iter   : {n_samp}")
     print("=" * 60)
 
@@ -84,8 +86,7 @@ def main() -> None:
         n_samples_per_iter=n_samp,
         nqs_train_epochs=config.get("nqs_train_epochs", 50),
         nqs_lr=config.get("nqs_lr", 1e-3),
-        energy_tol=config.get("convergence_tol",
-                              config.get("energy_tol", 1e-5)),
+        energy_tol=config.get("convergence_tol", config.get("energy_tol", 1e-5)),
         use_ibm_solver=config.get("use_ibm_solver", True),
         device=device,
     )
@@ -100,19 +101,13 @@ def main() -> None:
     basis_sizes = result.metadata.get("basis_sizes_per_iteration", [])
 
     print("\nIteration-by-iteration convergence:")
-    print(
-        f"  {'Iter':>4}  {'Energy (Ha)':>16}"
-        f"  {'Error (mHa)':>12}  {'Basis':>8}"
-    )
+    print(f"  {'Iter':>4}  {'Energy (Ha)':>16}  {'Error (mHa)':>12}  {'Basis':>8}")
     print("  " + "-" * 50)
 
     for i, energy in enumerate(energies):
         err_mha = (energy - exact_energy) * 1000.0
         basis = basis_sizes[i] if i < len(basis_sizes) else 0
-        print(
-            f"  {i + 1:>4}  {energy:>16.10f}"
-            f"  {err_mha:>12.4f}  {basis:>8d}"
-        )
+        print(f"  {i + 1:>4}  {energy:>16.10f}  {err_mha:>12.4f}  {basis:>8d}")
 
     # --- Final summary ---
     print("\n" + "=" * 60)

@@ -5,7 +5,7 @@ Runs the 3-stage pipeline:
   2. Diversity-aware basis extraction (merges NF + essential configs)
   3. SKQD Krylov subspace diagonalization
 
-Uses skip_nf_training=False and subspace_mode="skqd".
+Uses skip_nf_training=False and subspace_mode="classical_krylov".
 """
 
 from __future__ import annotations
@@ -39,20 +39,45 @@ def detect_device() -> str:
 def get_training_params(n_configs: int) -> dict:
     """Scale training hyperparameters based on Hilbert-space size."""
     if n_configs <= 10:
-        return dict(max_epochs=100, min_epochs=30, samples_per_batch=500,
-                    nf_hidden_dims=[128, 128], nqs_hidden_dims=[128, 128, 128])
+        return dict(
+            max_epochs=100,
+            min_epochs=30,
+            samples_per_batch=500,
+            nf_hidden_dims=[128, 128],
+            nqs_hidden_dims=[128, 128, 128],
+        )
     elif n_configs <= 300:
-        return dict(max_epochs=150, min_epochs=50, samples_per_batch=1000,
-                    nf_hidden_dims=[128, 128], nqs_hidden_dims=[128, 128, 128])
+        return dict(
+            max_epochs=150,
+            min_epochs=50,
+            samples_per_batch=1000,
+            nf_hidden_dims=[128, 128],
+            nqs_hidden_dims=[128, 128, 128],
+        )
     elif n_configs <= 2000:
-        return dict(max_epochs=200, min_epochs=80, samples_per_batch=1500,
-                    nf_hidden_dims=[256, 256], nqs_hidden_dims=[256, 256, 256])
+        return dict(
+            max_epochs=200,
+            min_epochs=80,
+            samples_per_batch=1500,
+            nf_hidden_dims=[256, 256],
+            nqs_hidden_dims=[256, 256, 256],
+        )
     elif n_configs <= 5000:
-        return dict(max_epochs=300, min_epochs=100, samples_per_batch=2000,
-                    nf_hidden_dims=[256, 256], nqs_hidden_dims=[256, 256, 256])
+        return dict(
+            max_epochs=300,
+            min_epochs=100,
+            samples_per_batch=2000,
+            nf_hidden_dims=[256, 256],
+            nqs_hidden_dims=[256, 256, 256],
+        )
     else:
-        return dict(max_epochs=400, min_epochs=150, samples_per_batch=3000,
-                    nf_hidden_dims=[512, 512], nqs_hidden_dims=[512, 512, 512])
+        return dict(
+            max_epochs=400,
+            min_epochs=150,
+            samples_per_batch=3000,
+            nf_hidden_dims=[512, 512],
+            nqs_hidden_dims=[512, 512, 512],
+        )
 
 
 def get_skqd_params(n_configs: int) -> dict:
@@ -82,11 +107,9 @@ def main() -> None:
     parser.add_argument("--max-krylov-dim", type=int, default=None)
     parser.add_argument("--shots-per-krylov", type=int, default=None)
     parser.add_argument("--max-accumulated-basis", type=int, default=None)
-    parser.add_argument("--use-diversity-selection", action="store_true",
-                        default=None)
+    parser.add_argument("--use-diversity-selection", action="store_true", default=None)
     parser.add_argument("--max-diverse-configs", type=int, default=None)
-    parser.add_argument("--use-residual-expansion", action="store_true",
-                        default=None)
+    parser.add_argument("--use-residual-expansion", action="store_true", default=None)
     parser.add_argument("--residual-iterations", type=int, default=None)
     parser.add_argument("--residual-configs-per-iter", type=int, default=None)
     parser.add_argument("--verbose", action="store_true", default=None)
@@ -127,21 +150,18 @@ def main() -> None:
     entropy_weight = config.get("entropy_weight", 0.1)
     max_epochs = config.get("max_epochs", train_defaults["max_epochs"])
     min_epochs = config.get("min_epochs", train_defaults["min_epochs"])
-    samples_per_batch = config.get("samples_per_batch",
-                                   train_defaults["samples_per_batch"])
-    nf_hidden_dims = config.get("nf_hidden_dims",
-                                train_defaults["nf_hidden_dims"])
-    nqs_hidden_dims = config.get("nqs_hidden_dims",
-                                 train_defaults["nqs_hidden_dims"])
-    max_krylov_dim = config.get("max_krylov_dim",
-                                skqd_defaults["max_krylov_dim"])
-    shots_per_krylov = config.get("shots_per_krylov",
-                                  skqd_defaults["shots_per_krylov"])
+    samples_per_batch = config.get(
+        "samples_per_batch", train_defaults["samples_per_batch"]
+    )
+    nf_hidden_dims = config.get("nf_hidden_dims", train_defaults["nf_hidden_dims"])
+    nqs_hidden_dims = config.get("nqs_hidden_dims", train_defaults["nqs_hidden_dims"])
+    max_krylov_dim = config.get("max_krylov_dim", skqd_defaults["max_krylov_dim"])
+    shots_per_krylov = config.get("shots_per_krylov", skqd_defaults["shots_per_krylov"])
 
     # --- Build pipeline-config kwargs ---
     pipeline_kwargs: dict = dict(
         skip_nf_training=False,
-        subspace_mode="skqd",
+        subspace_mode="classical_krylov",
         teacher_weight=teacher_weight,
         physics_weight=physics_weight,
         entropy_weight=entropy_weight,
@@ -206,8 +226,9 @@ def main() -> None:
             label = "NF-only" if i == 0 else f"k={i - 1}"
             print(f"    {label:>8}: {e:.10f} Ha")
 
-    final_energy = pipeline.results.get("final_energy",
-                                        pipeline.results.get("combined_energy"))
+    final_energy = pipeline.results.get(
+        "final_energy", pipeline.results.get("combined_energy")
+    )
     error_mha = pipeline.results.get("error_mha")
     if error_mha is None and final_energy is not None:
         error_mha = (final_energy - exact_energy) * 1000.0

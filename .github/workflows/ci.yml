@@ -15,8 +15,23 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ruff
-      - run: ruff check src/ tests/
-      - run: ruff format --check src/ tests/
+      - name: Check linting
+        run: ruff check src/ tests/ experiments/
+      - name: Check formatting
+        run: ruff format --check src/ tests/ experiments/
+
+  typecheck:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -e ".[dev]" && pip install mypy
+      - name: Run mypy on core modules (informational)
+        run: mypy src/qvartools/pipeline.py src/qvartools/pipeline_config.py src/qvartools/nqs/ --ignore-missing-imports --no-error-summary
 
   test:
     runs-on: ubuntu-latest
@@ -30,5 +45,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: pip install -e ".[dev,pyscf]"
-      - name: Run tests
-        run: pytest --cov=qvartools --cov-report=term-missing -m "not gpu"
+      - name: Run tests with coverage
+        run: >
+          pytest
+          --cov=qvartools
+          --cov-report=term-missing
+          --cov-report=xml
+          ${{ matrix.python-version == '3.11' && '--cov-fail-under=40' || '' }}
+          -m "not gpu"
+          --tb=short -q

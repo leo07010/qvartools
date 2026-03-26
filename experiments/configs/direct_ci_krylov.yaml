@@ -10,7 +10,7 @@ molecule: h2                  # Molecule identifier (h2, lih, h2o, …)
 
 # ---- Pipeline mode ----------------------------------------------------------
 skip_nf_training: true        # Skip NF training; use Direct-CI configurations
-subspace_mode: skqd           # Subspace method: skqd
+subspace_mode: classical_krylov  # Subspace method: classical_krylov
 
 # ---- SKQD parameters -------------------------------------------------------
 max_krylov_dim: 15            # Maximum Krylov subspace dimension

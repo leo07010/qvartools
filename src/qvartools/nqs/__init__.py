@@ -28,6 +28,7 @@ compile_nqs
     Apply ``torch.compile`` to an NQS model with graceful fallback.
 """
 
+from qvartools.nqs.adapters import NQSWithSampling, TransformerAsNQS
 from qvartools.nqs.architectures.complex_nqs import ComplexNQS
 from qvartools.nqs.architectures.dense import DenseNQS, SignedDenseNQS, compile_nqs
 from qvartools.nqs.architectures.rbm import RBMQuantumState
@@ -41,5 +42,7 @@ __all__ = [
     "ComplexNQS",
     "RBMQuantumState",
     "AutoregressiveTransformer",
+    "TransformerAsNQS",
+    "NQSWithSampling",
     "compile_nqs",
 ]

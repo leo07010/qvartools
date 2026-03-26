@@ -61,7 +61,7 @@ def compile_nqs(
     try:
         compiled = torch.compile(model, mode=mode)
         logger.info("Successfully compiled NQS model with mode='%s'.", mode)
-        return compiled
+        return compiled  # type: ignore[return-value]
     except Exception as exc:  # noqa: BLE001
         logger.warning("torch.compile failed (%s). Returning uncompiled model.", exc)
         return model

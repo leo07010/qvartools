@@ -344,23 +344,23 @@ class AutoregressiveTransformer(nn.Module):
     def _enable_cache(self) -> None:
         """Enable KV cache in all causal self-attention layers."""
         for block in self.alpha_blocks:
-            block.self_attn.enable_cache()
+            block.self_attn.enable_cache()  # type: ignore[union-attr,operator]
         for block in self.beta_blocks:
-            block.self_attn.enable_cache()
+            block.self_attn.enable_cache()  # type: ignore[union-attr,operator]
 
     def _disable_cache(self) -> None:
         """Disable KV cache in all causal self-attention layers."""
         for block in self.alpha_blocks:
-            block.self_attn.disable_cache()
+            block.self_attn.disable_cache()  # type: ignore[union-attr,operator]
         for block in self.beta_blocks:
-            block.self_attn.disable_cache()
+            block.self_attn.disable_cache()  # type: ignore[union-attr,operator]
 
     def _clear_cache(self) -> None:
         """Clear KV cache in all causal self-attention layers."""
         for block in self.alpha_blocks:
-            block.self_attn.clear_cache()
+            block.self_attn.clear_cache()  # type: ignore[union-attr,operator]
         for block in self.beta_blocks:
-            block.self_attn.clear_cache()
+            block.self_attn.clear_cache()  # type: ignore[union-attr,operator]
 
     # ------------------------------------------------------------------
     # Log probability

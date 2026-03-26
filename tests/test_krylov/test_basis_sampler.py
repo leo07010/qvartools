@@ -4,18 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from qvartools.hamiltonians import HeisenbergHamiltonian
 from qvartools.krylov.basis.sampler import KrylovBasisSampler
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture()
-def heisenberg_4():
-    """4-site periodic Heisenberg model."""
-    return HeisenbergHamiltonian(num_spins=4, Jx=1.0, Jy=1.0, Jz=1.0, periodic=True)
 
 
 @pytest.fixture()

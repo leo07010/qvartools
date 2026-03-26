@@ -39,11 +39,15 @@ _utils
 
 __version__ = "0.0.0"
 
+from qvartools._logging import configure_logging, get_logger
 from qvartools.pipeline import (
     FlowGuidedKrylovPipeline,
     PipelineConfig,
     run_molecular_benchmark,
 )
+
+# Auto-configure logging from environment on import
+configure_logging()
 
 __all__ = [
     "hamiltonians",
@@ -58,4 +62,6 @@ __all__ = [
     "PipelineConfig",
     "FlowGuidedKrylovPipeline",
     "run_molecular_benchmark",
+    "configure_logging",
+    "get_logger",
 ]

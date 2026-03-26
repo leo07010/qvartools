@@ -4,7 +4,7 @@ Pipeline: Uses only the HF reference state (1 configuration) as the
 starting point. Krylov time evolution discovers additional configurations
 through exact time propagation. No singles/doubles, no NF training.
 
-Uses skip_nf_training=True with subspace_mode="skqd". After
+Uses skip_nf_training=True with subspace_mode="classical_krylov". After
 train_flow_nqs() generates HF+S+D, we replace _essential_configs with
 just the HF state, then extract_and_select_basis(), then run_subspace_diag().
 """
@@ -88,15 +88,13 @@ def main() -> None:
 
     # --- Auto-scale defaults, then override with config values ---
     skqd_defaults = get_skqd_params(n_configs)
-    max_krylov_dim = config.get("max_krylov_dim",
-                                skqd_defaults["max_krylov_dim"])
-    shots_per_krylov = config.get("shots_per_krylov",
-                                  skqd_defaults["shots_per_krylov"])
+    max_krylov_dim = config.get("max_krylov_dim", skqd_defaults["max_krylov_dim"])
+    shots_per_krylov = config.get("shots_per_krylov", skqd_defaults["shots_per_krylov"])
 
     # --- Configure pipeline: Direct-CI mode + SKQD ---
     pipe_config = PipelineConfig(
         skip_nf_training=True,
-        subspace_mode="skqd",
+        subspace_mode="classical_krylov",
         device=device,
         max_krylov_dim=max_krylov_dim,
         shots_per_krylov=shots_per_krylov,
@@ -141,8 +139,9 @@ def main() -> None:
             label = "HF-only" if i == 0 else f"k={i - 1}"
             print(f"    {label:>8}: {e:.10f} Ha")
 
-    final_energy = pipeline.results.get("final_energy",
-                                        pipeline.results.get("combined_energy"))
+    final_energy = pipeline.results.get(
+        "final_energy", pipeline.results.get("combined_energy")
+    )
     error_mha = pipeline.results.get("error_mha")
     if error_mha is None and final_energy is not None:
         error_mha = (final_energy - exact_energy) * 1000.0

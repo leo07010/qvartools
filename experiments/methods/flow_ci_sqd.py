@@ -37,20 +37,45 @@ def detect_device() -> str:
 def get_training_params(n_configs: int) -> dict:
     """Scale training hyperparameters based on Hilbert-space size."""
     if n_configs <= 10:
-        return dict(max_epochs=100, min_epochs=30, samples_per_batch=500,
-                    nf_hidden_dims=[128, 128], nqs_hidden_dims=[128, 128, 128])
+        return dict(
+            max_epochs=100,
+            min_epochs=30,
+            samples_per_batch=500,
+            nf_hidden_dims=[128, 128],
+            nqs_hidden_dims=[128, 128, 128],
+        )
     elif n_configs <= 300:
-        return dict(max_epochs=150, min_epochs=50, samples_per_batch=1000,
-                    nf_hidden_dims=[128, 128], nqs_hidden_dims=[128, 128, 128])
+        return dict(
+            max_epochs=150,
+            min_epochs=50,
+            samples_per_batch=1000,
+            nf_hidden_dims=[128, 128],
+            nqs_hidden_dims=[128, 128, 128],
+        )
     elif n_configs <= 2000:
-        return dict(max_epochs=200, min_epochs=80, samples_per_batch=1500,
-                    nf_hidden_dims=[256, 256], nqs_hidden_dims=[256, 256, 256])
+        return dict(
+            max_epochs=200,
+            min_epochs=80,
+            samples_per_batch=1500,
+            nf_hidden_dims=[256, 256],
+            nqs_hidden_dims=[256, 256, 256],
+        )
     elif n_configs <= 5000:
-        return dict(max_epochs=300, min_epochs=100, samples_per_batch=2000,
-                    nf_hidden_dims=[256, 256], nqs_hidden_dims=[256, 256, 256])
+        return dict(
+            max_epochs=300,
+            min_epochs=100,
+            samples_per_batch=2000,
+            nf_hidden_dims=[256, 256],
+            nqs_hidden_dims=[256, 256, 256],
+        )
     else:
-        return dict(max_epochs=400, min_epochs=150, samples_per_batch=3000,
-                    nf_hidden_dims=[512, 512], nqs_hidden_dims=[512, 512, 512])
+        return dict(
+            max_epochs=400,
+            min_epochs=150,
+            samples_per_batch=3000,
+            nf_hidden_dims=[512, 512],
+            nqs_hidden_dims=[512, 512, 512],
+        )
 
 
 def get_noise_rate(n_qubits: int) -> float:
@@ -89,26 +114,39 @@ def main() -> None:
     parser = create_base_parser(
         "NF-Trained SQD: NF + Direct-CI -> noise -> S-CORE.",
     )
-    parser.add_argument("--teacher-weight", type=float, default=None,
-                        help="Teacher loss weight")
-    parser.add_argument("--physics-weight", type=float, default=None,
-                        help="Physics loss weight")
-    parser.add_argument("--entropy-weight", type=float, default=None,
-                        help="Entropy loss weight")
-    parser.add_argument("--max-epochs", type=int, default=None,
-                        help="Maximum training epochs")
-    parser.add_argument("--min-epochs", type=int, default=None,
-                        help="Minimum training epochs")
-    parser.add_argument("--samples-per-batch", type=int, default=None,
-                        help="Samples per training batch")
-    parser.add_argument("--sqd-num-batches", type=int, default=None,
-                        help="Number of SQD batches")
-    parser.add_argument("--sqd-self-consistent-iters", type=int, default=None,
-                        help="SQD self-consistent iterations")
-    parser.add_argument("--sqd-noise-rate", type=float, default=None,
-                        help="SQD noise injection rate")
-    parser.add_argument("--verbose", action="store_true", default=None,
-                        help="Enable verbose output")
+    parser.add_argument(
+        "--teacher-weight", type=float, default=None, help="Teacher loss weight"
+    )
+    parser.add_argument(
+        "--physics-weight", type=float, default=None, help="Physics loss weight"
+    )
+    parser.add_argument(
+        "--entropy-weight", type=float, default=None, help="Entropy loss weight"
+    )
+    parser.add_argument(
+        "--max-epochs", type=int, default=None, help="Maximum training epochs"
+    )
+    parser.add_argument(
+        "--min-epochs", type=int, default=None, help="Minimum training epochs"
+    )
+    parser.add_argument(
+        "--samples-per-batch", type=int, default=None, help="Samples per training batch"
+    )
+    parser.add_argument(
+        "--sqd-num-batches", type=int, default=None, help="Number of SQD batches"
+    )
+    parser.add_argument(
+        "--sqd-self-consistent-iters",
+        type=int,
+        default=None,
+        help="SQD self-consistent iterations",
+    )
+    parser.add_argument(
+        "--sqd-noise-rate", type=float, default=None, help="SQD noise injection rate"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", default=None, help="Enable verbose output"
+    )
 
     args, cfg = load_config(parser)
 
@@ -146,23 +184,24 @@ def main() -> None:
     # --- Resolve parameters: config/CLI values -> auto-scaled defaults ---
     max_epochs = cfg.get("max_epochs", train_defaults["max_epochs"])
     min_epochs = cfg.get("min_epochs", train_defaults["min_epochs"])
-    samples_per_batch = cfg.get("samples_per_batch",
-                                train_defaults["samples_per_batch"])
+    samples_per_batch = cfg.get(
+        "samples_per_batch", train_defaults["samples_per_batch"]
+    )
     nf_hidden_dims = cfg.get("nf_hidden_dims", train_defaults["nf_hidden_dims"])
-    nqs_hidden_dims = cfg.get("nqs_hidden_dims",
-                              train_defaults["nqs_hidden_dims"])
+    nqs_hidden_dims = cfg.get("nqs_hidden_dims", train_defaults["nqs_hidden_dims"])
 
     teacher_weight = cfg.get("teacher_weight", 0.5)
     physics_weight = cfg.get("physics_weight", 0.4)
     entropy_weight = cfg.get("entropy_weight", 0.1)
 
     noise_rate = cfg.get("sqd_noise_rate", get_noise_rate(n_qubits))
-    sqd_num_batches = cfg.get("sqd_num_batches",
-                              sqd_defaults["sqd_num_batches"])
-    sqd_self_consistent_iters = cfg.get("sqd_self_consistent_iters",
-                                        sqd_defaults["sqd_self_consistent_iters"])
-    sqd_use_spin_symmetry = cfg.get("sqd_use_spin_symmetry",
-                                    sqd_defaults["sqd_use_spin_symmetry"])
+    sqd_num_batches = cfg.get("sqd_num_batches", sqd_defaults["sqd_num_batches"])
+    sqd_self_consistent_iters = cfg.get(
+        "sqd_self_consistent_iters", sqd_defaults["sqd_self_consistent_iters"]
+    )
+    sqd_use_spin_symmetry = cfg.get(
+        "sqd_use_spin_symmetry", sqd_defaults["sqd_use_spin_symmetry"]
+    )
 
     print(f"Noise rate: {noise_rate}")
     print(f"SQD batches: {sqd_num_batches}")
@@ -226,8 +265,9 @@ def main() -> None:
     print(f"Noise rate           : {noise_rate}")
     print(f"Total shots          : {total_shots}")
 
-    final_energy = pipeline.results.get("final_energy",
-                                        pipeline.results.get("combined_energy"))
+    final_energy = pipeline.results.get(
+        "final_energy", pipeline.results.get("combined_energy")
+    )
     error_mha = pipeline.results.get("error_mha")
     if error_mha is None and final_energy is not None:
         error_mha = (final_energy - exact_energy) * 1000.0

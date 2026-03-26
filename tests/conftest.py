@@ -70,6 +70,14 @@ def heisenberg_4site():
     return HeisenbergHamiltonian(num_spins=4, Jx=1.0, Jy=1.0, Jz=1.0, periodic=True)
 
 
+@pytest.fixture()
+def heisenberg_4():
+    """4-site Heisenberg model (non-session scope, for mutation safety)."""
+    from qvartools.hamiltonians import HeisenbergHamiltonian
+
+    return HeisenbergHamiltonian(num_spins=4, Jx=1.0, Jy=1.0, Jz=1.0, periodic=True)
+
+
 @pytest.fixture(scope="session")
 def tfim_6site():
     """6-site Transverse Field Ising model (V=1.0, h=1.0, periodic)."""

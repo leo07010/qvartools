@@ -41,11 +41,15 @@ def main() -> None:
     # --- Parse CLI / YAML config ---
     parser = create_base_parser("HI+NQS+SKQD: iterative NQS + Krylov expansion.")
     parser.add_argument(
-        "--max-iterations", type=int, default=None,
+        "--max-iterations",
+        type=int,
+        default=None,
         help="Maximum outer iterations.",
     )
     parser.add_argument(
-        "--n-samples", type=int, default=None,
+        "--n-samples",
+        type=int,
+        default=None,
         help="NQS samples per iteration.",
     )
     parser.add_argument("--verbose", action="store_true", default=None)

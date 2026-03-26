@@ -3,21 +3,8 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
-from qvartools.hamiltonians import HeisenbergHamiltonian
 from qvartools.pipeline import FlowGuidedKrylovPipeline, PipelineConfig
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture()
-def heisenberg_4():
-    """4-site periodic Heisenberg model."""
-    return HeisenbergHamiltonian(num_spins=4, Jx=1.0, Jy=1.0, Jz=1.0, periodic=True)
-
 
 # ---------------------------------------------------------------------------
 # PipelineConfig
@@ -110,8 +97,7 @@ class TestSpinPipeline:
         # Energy should be within 20% of exact for this small system
         # (with such minimal training, we allow generous tolerance)
         final_e = results["final_energy"]
-        assert final_e <= 0.0 or True  # spin model energies can be positive
-        # Just verify it is a reasonable finite number
+        # Spin model energies can be positive; just verify reasonable magnitude
         assert abs(final_e) < 100.0
 
     def test_pipeline_skip_skqd(self, heisenberg_4):

@@ -311,7 +311,7 @@ class TransformerNFSampler(Sampler):
         # Fallback to dense NQS
         from qvartools.nqs.architectures.dense import DenseNQS
 
-        return DenseNQS(num_sites=n_sites, hidden_dim=embed_dim)
+        return DenseNQS(num_sites=n_sites, hidden_dims=[embed_dim])
 
     # ------------------------------------------------------------------
     # Training

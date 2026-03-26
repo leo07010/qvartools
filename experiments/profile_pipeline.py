@@ -17,8 +17,9 @@ from __future__ import annotations
 import functools
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 import torch
 
@@ -54,27 +55,27 @@ class TimingStore:
     """Central store that accumulates all timing records."""
 
     def __init__(self) -> None:
-        self._records: List[TimingRecord] = []
+        self._records: list[TimingRecord] = []
 
     def add(self, name: str, elapsed_s: float, category: str = "") -> None:
         self._records = [*self._records, TimingRecord(name, elapsed_s, category)]
 
     @property
-    def records(self) -> List[TimingRecord]:
+    def records(self) -> list[TimingRecord]:
         return list(self._records)
 
     def clear(self) -> None:
         self._records = []
 
-    def records_by_category(self) -> Dict[str, List[TimingRecord]]:
-        grouped: Dict[str, List[TimingRecord]] = defaultdict(list)
+    def records_by_category(self) -> dict[str, list[TimingRecord]]:
+        grouped: dict[str, list[TimingRecord]] = defaultdict(list)
         for rec in self._records:
             grouped[rec.category].append(rec)
         return dict(grouped)
 
-    def aggregate_by_name(self) -> Dict[str, Tuple[int, float]]:
+    def aggregate_by_name(self) -> dict[str, tuple[int, float]]:
         """Return {name: (call_count, total_seconds)}."""
-        agg: Dict[str, Tuple[int, float]] = {}
+        agg: dict[str, tuple[int, float]] = {}
         for rec in self._records:
             count, total = agg.get(rec.name, (0, 0.0))
             agg[rec.name] = (count + 1, total + rec.elapsed_s)
@@ -98,14 +99,14 @@ class Timer:
         self,
         name: str,
         category: str = "",
-        store: Optional[TimingStore] = None,
+        store: TimingStore | None = None,
     ) -> None:
         self.name = name
         self.category = category
         self._store = store or _STORE
         self.elapsed: float = 0.0
 
-    def __enter__(self) -> "Timer":
+    def __enter__(self) -> Timer:
         _sync_device()
         self._start = time.perf_counter()
         return self
@@ -174,7 +175,7 @@ def _restore_module_function(module: Any, func_name: str) -> None:
 # Molecule configurations
 # ---------------------------------------------------------------------------
 
-MOLECULE_PROFILES: Dict[str, Dict[str, Any]] = {
+MOLECULE_PROFILES: dict[str, dict[str, Any]] = {
     "H2": {
         "nf_hidden_dims": [64, 32],
         "nqs_hidden_dims": [64, 32],
@@ -206,7 +207,7 @@ def _format_time(seconds: float) -> str:
 
 def _print_stage_table(
     molecule: str,
-    stage_times: Dict[str, float],
+    stage_times: dict[str, float],
 ) -> None:
     """Print per-stage timing table for one molecule."""
     total = sum(stage_times.values())
@@ -232,7 +233,7 @@ def _print_bottleneck_map(store: TimingStore) -> None:
         return
 
     # Group by category (subpackage)
-    by_cat: Dict[str, List[Tuple[str, int, float]]] = defaultdict(list)
+    by_cat: dict[str, list[tuple[str, int, float]]] = defaultdict(list)
     for name, (count, total) in agg.items():
         # Derive category from the stored records
         cat = ""
@@ -278,7 +279,7 @@ def _print_bottleneck_map(store: TimingStore) -> None:
     print()
 
 
-def _print_comparison_template(all_results: Dict[str, Dict[str, float]]) -> None:
+def _print_comparison_template(all_results: dict[str, dict[str, float]]) -> None:
     """Print a before/after timing comparison table template."""
     print("=" * 72)
     print("  BEFORE / AFTER TIMING COMPARISON TEMPLATE")
@@ -303,9 +304,9 @@ def _print_comparison_template(all_results: Dict[str, Dict[str, float]]) -> None
 # ---------------------------------------------------------------------------
 
 
-def _install_function_patches(hamiltonian: Any) -> List[Tuple[Any, str]]:
+def _install_function_patches(hamiltonian: Any) -> list[tuple[Any, str]]:
     """Monkey-patch key functions for per-call timing. Returns restore list."""
-    patches_to_restore: List[Tuple[Any, str]] = []
+    patches_to_restore: list[tuple[Any, str]] = []
 
     # --- Hamiltonian methods (instance-level) ---
     ham_methods = [
@@ -372,7 +373,7 @@ def _install_function_patches(hamiltonian: Any) -> List[Tuple[Any, str]]:
 
 
 def _remove_function_patches(
-    patches: List[Tuple[Any, str]],
+    patches: list[tuple[Any, str]],
 ) -> None:
     """Restore original module-level functions."""
     for module, func_name in patches:
@@ -381,8 +382,8 @@ def _remove_function_patches(
 
 def profile_molecule(
     molecule_name: str,
-    config_overrides: Dict[str, Any],
-) -> Dict[str, float]:
+    config_overrides: dict[str, Any],
+) -> dict[str, float]:
     """Profile the full pipeline for a single molecule.
 
     Returns a dict of {stage_name: elapsed_seconds}.
@@ -391,9 +392,9 @@ def profile_molecule(
     from qvartools.pipeline import FlowGuidedKrylovPipeline
     from qvartools.pipeline_config import PipelineConfig
 
-    print(f"\n{'='*72}")
+    print(f"\n{'=' * 72}")
     print(f"  Profiling: {molecule_name}  (device={DEVICE})")
-    print(f"{'='*72}")
+    print(f"{'=' * 72}")
 
     # --- Build molecule ---
     with Timer(f"{molecule_name}/get_molecule", category="setup"):
@@ -418,7 +419,7 @@ def profile_molecule(
     # --- Install per-function patches ---
     patches = _install_function_patches(hamiltonian)
 
-    stage_times: Dict[str, float] = {}
+    stage_times: dict[str, float] = {}
 
     # --- Stage 1: Training ---
     print("  [1/3] Training flow + NQS ...")
@@ -469,7 +470,7 @@ def main() -> None:
     print("#" * 72)
 
     _STORE.clear()
-    all_stage_results: Dict[str, Dict[str, float]] = {}
+    all_stage_results: dict[str, dict[str, float]] = {}
 
     for mol_name, overrides in MOLECULE_PROFILES.items():
         try:

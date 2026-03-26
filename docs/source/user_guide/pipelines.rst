@@ -82,7 +82,7 @@ diagonalization) to compute the ground-state energy.
 
    config = PipelineConfig(
        skip_nf_training=False,
-       subspace_mode="skqd",   # or "sqd"
+       subspace_mode="classical_krylov",   # "classical_krylov", "skqd", or "sqd"
        teacher_weight=0.5,
        physics_weight=0.4,
        entropy_weight=0.1,
