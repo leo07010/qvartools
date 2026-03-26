@@ -1,18 +1,24 @@
 """
-skqd --- Sample-Based Krylov Quantum Diagonalization
-=====================================================
+skqd --- Classical Krylov subspace diagonalization
+===================================================
 
-Implements the Sample-Based Krylov Quantum Diagonalization (SKQD) algorithm,
-which constructs a Krylov subspace from time-evolved quantum states, samples
+Implements a classical Krylov subspace diagonalization algorithm that
+constructs Krylov states via exact matrix exponentiation, samples
 computational-basis configurations from each Krylov vector, and solves a
 projected generalized eigenvalue problem in the sampled basis.
+
+.. note::
+
+   This module performs **classical** linear algebra (no quantum circuits).
+   For the real SKQD algorithm using CUDA-Q Trotterized circuits, see
+   :mod:`qvartools.krylov.circuits.circuit_skqd`.
 
 Classes
 -------
 SKQDConfig
-    Dataclass holding all hyperparameters for the SKQD algorithm.
-SampleBasedKrylovDiagonalization
-    Core SKQD solver that builds and diagonalises the projected Hamiltonian.
+    Dataclass holding all hyperparameters for the algorithm.
+ClassicalKrylovDiagonalization
+    Core solver that builds and diagonalises the projected Hamiltonian.
 
 References
 ----------
@@ -36,17 +42,40 @@ from qvartools.hamiltonians.hamiltonian import Hamiltonian
 
 __all__ = [
     "SKQDConfig",
+    "ClassicalKrylovDiagonalization",
+    # Deprecated aliases (remove in v0.1.0)
     "SampleBasedKrylovDiagonalization",
     "FlowGuidedSKQD",
 ]
 
 
 def __getattr__(name: str):
-    """Lazy re-export of FlowGuidedSKQD to avoid circular import."""
-    if name == "FlowGuidedSKQD":
-        from qvartools.krylov.basis.flow_guided import FlowGuidedSKQD
+    """Lazy re-export with deprecation warnings for old names."""
+    import warnings
 
-        return FlowGuidedSKQD
+    if name == "FlowGuidedKrylovDiag":
+        from qvartools.krylov.basis.flow_guided import FlowGuidedKrylovDiag
+
+        return FlowGuidedKrylovDiag
+
+    _DEPRECATED = {
+        "FlowGuidedSKQD": "FlowGuidedKrylovDiag",
+        "SampleBasedKrylovDiagonalization": "ClassicalKrylovDiagonalization",
+    }
+    if name in _DEPRECATED:
+        new_name = _DEPRECATED[name]
+        warnings.warn(
+            f"{name} is deprecated, use {new_name} instead. "
+            "The old name will be removed in v0.1.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name == "FlowGuidedSKQD":
+            from qvartools.krylov.basis.flow_guided import FlowGuidedKrylovDiag
+
+            return FlowGuidedKrylovDiag
+        return ClassicalKrylovDiagonalization
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -103,6 +132,9 @@ class SKQDConfig:
     num_eigenvalues: int = 1
     which_eigenvalues: str = "SA"
     regularization: float = 1e-8
+    # NOTE: use_gpu is not yet forwarded to _solve_generalised_eigenproblem
+    # from all call sites. The eigensolver defaults to GPU when available.
+    # TODO: wire this through in a future PR.
     use_gpu: bool = False
 
     def __post_init__(self) -> None:
@@ -246,17 +278,18 @@ def _solve_generalised_eigenproblem(
 
 
 # ---------------------------------------------------------------------------
-# SampleBasedKrylovDiagonalization
+# ClassicalKrylovDiagonalization
 # ---------------------------------------------------------------------------
 
 
-class SampleBasedKrylovDiagonalization:
-    r"""Sample-Based Krylov Quantum Diagonalization (SKQD).
+class ClassicalKrylovDiagonalization:
+    r"""Classical Krylov subspace diagonalization via exact time evolution.
 
     Constructs Krylov states
-    :math:`|\psi_k\rangle = (e^{-iH\Delta t})^k |\psi_0\rangle`,
-    samples computational-basis configurations from each, and solves a
-    projected generalized eigenvalue problem in the sampled basis.
+    :math:`|\psi_k\rangle = (e^{-iH\Delta t})^k |\psi_0\rangle`
+    using exact matrix exponentiation (no Trotter decomposition),
+    samples computational-basis configurations from each via Born-rule
+    sampling, and solves a projected generalized eigenvalue problem.
 
     For molecular Hamiltonians the algorithm restricts to the
     particle-number-conserving subspace.  For spin Hamiltonians the full
@@ -285,7 +318,7 @@ class SampleBasedKrylovDiagonalization:
 
     Examples
     --------
-    >>> skqd = SampleBasedKrylovDiagonalization(hamiltonian, SKQDConfig())
+    >>> skqd = ClassicalKrylovDiagonalization(hamiltonian, SKQDConfig())
     >>> eigenvalues, info = skqd.run()
     >>> info["krylov_dim"]
     10
@@ -664,3 +697,6 @@ class SampleBasedKrylovDiagonalization:
         }
 
         return eigenvalues, info
+
+
+# Deprecated alias: handled by module-level __getattr__ with DeprecationWarning

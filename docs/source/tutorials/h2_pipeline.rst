@@ -46,7 +46,7 @@ Step 3: Configure the Pipeline
 
    config = PipelineConfig(
        skip_nf_training=False,
-       subspace_mode="skqd",
+       subspace_mode="classical_krylov",
        teacher_weight=0.5,
        physics_weight=0.4,
        entropy_weight=0.1,

@@ -5,7 +5,7 @@ Runs the 3-stage pipeline:
   2. Diversity-aware basis extraction (merges NF + essential configs)
   3. SKQD Krylov subspace diagonalization
 
-Uses skip_nf_training=False and subspace_mode="skqd".
+Uses skip_nf_training=False and subspace_mode="classical_krylov".
 """
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ def main() -> None:
     # --- Build pipeline-config kwargs ---
     pipeline_kwargs: dict = dict(
         skip_nf_training=False,
-        subspace_mode="skqd",
+        subspace_mode="classical_krylov",
         teacher_weight=teacher_weight,
         physics_weight=physics_weight,
         entropy_weight=entropy_weight,

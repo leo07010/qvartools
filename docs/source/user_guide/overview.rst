@@ -79,9 +79,9 @@ krylov
 
 Krylov subspace methods:
 
-- ``SampleBasedKrylovDiagonalization`` -- core SKQD solver constructing Krylov
+- ``ClassicalKrylovDiagonalization`` -- core SKQD solver constructing Krylov
   states via time evolution
-- ``FlowGuidedSKQD`` -- SKQD seeded with normalizing-flow basis
+- ``FlowGuidedKrylovDiag`` -- SKQD seeded with normalizing-flow basis
 - ``ResidualBasedExpander`` -- iterative basis expansion via residual analysis
 - ``SelectedCIExpander`` -- CIPSI-style perturbative basis enrichment
 

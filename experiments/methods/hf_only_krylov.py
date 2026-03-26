@@ -4,7 +4,7 @@ Pipeline: Uses only the HF reference state (1 configuration) as the
 starting point. Krylov time evolution discovers additional configurations
 through exact time propagation. No singles/doubles, no NF training.
 
-Uses skip_nf_training=True with subspace_mode="skqd". After
+Uses skip_nf_training=True with subspace_mode="classical_krylov". After
 train_flow_nqs() generates HF+S+D, we replace _essential_configs with
 just the HF state, then extract_and_select_basis(), then run_subspace_diag().
 """
@@ -96,7 +96,7 @@ def main() -> None:
     # --- Configure pipeline: Direct-CI mode + SKQD ---
     pipe_config = PipelineConfig(
         skip_nf_training=True,
-        subspace_mode="skqd",
+        subspace_mode="classical_krylov",
         device=device,
         max_krylov_dim=max_krylov_dim,
         shots_per_krylov=shots_per_krylov,

@@ -75,7 +75,7 @@ A typical YAML config file looks like this:
 
    # ---- Pipeline mode ------------------------------------------
    skip_nf_training: false       # Whether to skip NF training
-   subspace_mode: skqd           # skqd or sqd
+   subspace_mode: classical_krylov  # classical_krylov, skqd, or sqd
 
    # ---- Training loss weights ----------------------------------
    teacher_weight: 0.5           # Teacher KL-divergence weight

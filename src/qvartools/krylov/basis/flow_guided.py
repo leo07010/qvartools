@@ -1,15 +1,15 @@
 """
-flow_guided --- Flow-Guided Sample-Based Krylov Diagonalization
-================================================================
+flow_guided --- Flow-guided classical Krylov diagonalization
+=============================================================
 
-Provides :class:`FlowGuidedSKQD`, an SKQD variant that seeds the Krylov
-basis with configurations obtained from a normalizing-flow sampler for
+Provides :class:`FlowGuidedKrylovDiag`, a classical Krylov variant that
+seeds the basis with configurations from a normalizing-flow sampler for
 accelerated convergence.
 
 Classes
 -------
-FlowGuidedSKQD
-    SKQD variant that incorporates normalizing-flow basis states.
+FlowGuidedKrylovDiag
+    Classical Krylov diagonalization with normalizing-flow basis seeding.
 """
 
 from __future__ import annotations
@@ -22,20 +22,22 @@ import torch
 
 from qvartools.hamiltonians.hamiltonian import Hamiltonian
 from qvartools.krylov.basis.skqd import (
-    SampleBasedKrylovDiagonalization,
+    ClassicalKrylovDiagonalization,
     SKQDConfig,
     _build_projected_matrices,
     _solve_generalised_eigenproblem,
 )
 
 __all__ = [
+    "FlowGuidedKrylovDiag",
+    # Deprecated alias (remove in v0.1.0)
     "FlowGuidedSKQD",
 ]
 
 logger = logging.getLogger(__name__)
 
 
-class FlowGuidedSKQD:
+class FlowGuidedKrylovDiag:
     r"""SKQD with normalizing-flow basis seeding.
 
     Combines configurations obtained from a normalizing-flow sampler with
@@ -61,7 +63,7 @@ class FlowGuidedSKQD:
 
     Examples
     --------
-    >>> skqd = FlowGuidedSKQD(hamiltonian, SKQDConfig(), nf_basis=nf_configs)
+    >>> skqd = FlowGuidedKrylovDiag(hamiltonian, SKQDConfig(), nf_basis=nf_configs)
     >>> results = skqd.run_with_nf(progress=True)
     >>> results["energy"]
     -1.137
@@ -91,9 +93,7 @@ class FlowGuidedSKQD:
         self.nf_basis_weights = nf_basis_weights
 
         # Delegate Krylov machinery to the base solver
-        self._skqd = SampleBasedKrylovDiagonalization(
-            hamiltonian, config, initial_state
-        )
+        self._skqd = ClassicalKrylovDiagonalization(hamiltonian, config, initial_state)
 
     def _build_matrices(self, configs: torch.Tensor) -> tuple:
         """Build projected Hamiltonian and overlap matrices.
@@ -221,3 +221,23 @@ class FlowGuidedSKQD:
             "nf_energy": nf_energy,
             "basis_configs": all_configs,
         }
+
+
+# ---------------------------------------------------------------------------
+# Deprecated alias (remove in v0.1.0)
+# ---------------------------------------------------------------------------
+
+
+def __getattr__(name: str):
+    """Emit DeprecationWarning for old name."""
+    import warnings
+
+    if name == "FlowGuidedSKQD":
+        warnings.warn(
+            "FlowGuidedSKQD is deprecated, use FlowGuidedKrylovDiag instead. "
+            "The old name will be removed in v0.1.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return FlowGuidedKrylovDiag
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

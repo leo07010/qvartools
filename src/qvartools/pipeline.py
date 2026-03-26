@@ -45,7 +45,7 @@ from qvartools.flows import (
     verify_particle_conservation,
 )
 from qvartools.krylov import (
-    FlowGuidedSKQD,
+    FlowGuidedKrylovDiag,
     ResidualBasedExpander,
     ResidualExpansionConfig,
     SelectedCIExpander,
@@ -74,8 +74,8 @@ class FlowGuidedKrylovPipeline:
 
     Supports three subspace diagonalization modes via ``config.subspace_mode``:
 
-    - ``"skqd"``: Classical exact time evolution (no Trotter error).
-    - ``"skqd_quantum"``: Quantum circuit Trotterized evolution (CUDA-Q).
+    - ``"classical_krylov"``: Classical exact time evolution (no Trotter error).
+    - ``"skqd"``: Real SKQD via quantum circuit Trotterized evolution (CUDA-Q).
     - ``"sqd"``: IBM SQD sampling-based batch diagonalization.
 
     When ``config.skip_nf_training`` is ``True``, operates in **Direct-CI
@@ -182,10 +182,7 @@ class FlowGuidedKrylovPipeline:
             ).to(device)
 
         # --- NQS ---
-        self.nqs = DenseNQS(
-            num_sites=num_sites,
-            hidden_dims=list(cfg.nqs_hidden_dims),
-        ).to(device)
+        self.nqs = self._create_nqs(num_sites, cfg, device)
 
         # --- Reference state ---
         if self._is_molecular:
@@ -197,6 +194,71 @@ class FlowGuidedKrylovPipeline:
             self.reference_state = torch.zeros(
                 num_sites, dtype=torch.float32, device=device
             )
+
+    # ------------------------------------------------------------------
+    # NQS factory
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _create_nqs(
+        num_sites: int,
+        cfg: PipelineConfig,
+        device: torch.device,
+    ) -> torch.nn.Module:
+        """Instantiate the NQS model based on ``cfg.nqs_type``.
+
+        Parameters
+        ----------
+        num_sites : int
+            Number of qubit / lattice sites.
+        cfg : PipelineConfig
+            Pipeline configuration (uses ``nqs_type`` and ``nqs_hidden_dims``).
+        device : torch.device
+            Target device.
+
+        Returns
+        -------
+        torch.nn.Module
+            The NQS model, moved to *device*.
+        """
+        hidden = list(cfg.nqs_hidden_dims)
+        nqs_type = cfg.nqs_type
+
+        if nqs_type == "dense":
+            return DenseNQS(num_sites=num_sites, hidden_dims=hidden).to(device)
+
+        if nqs_type == "signed":
+            from qvartools.nqs import SignedDenseNQS
+
+            return SignedDenseNQS(num_sites=num_sites, hidden_dims=hidden).to(device)
+
+        if nqs_type == "complex":
+            from qvartools.nqs import ComplexNQS
+
+            return ComplexNQS(num_sites=num_sites, hidden_dims=hidden).to(device)
+
+        if nqs_type == "rbm":
+            from qvartools.nqs import RBMQuantumState
+
+            return RBMQuantumState(num_sites=num_sites).to(device)
+
+        if nqs_type == "transformer":
+            from qvartools.nqs.adapters import TransformerAsNQS
+            from qvartools.nqs.transformer.autoregressive import (
+                AutoregressiveTransformer,
+            )
+
+            n_orb = num_sites // 2
+            transformer = AutoregressiveTransformer(
+                n_orbitals=n_orb,
+                n_alpha=n_orb // 2,
+                n_beta=n_orb // 2,
+                embed_dim=hidden[0] if hidden else 64,
+            )
+            return TransformerAsNQS(transformer).to(device)
+
+        logger.warning("Unknown nqs_type %r, falling back to DenseNQS.", nqs_type)
+        return DenseNQS(num_sites=num_sites, hidden_dims=hidden).to(device)
 
     # ------------------------------------------------------------------
     # Essential config generation (Direct-CI)
@@ -504,15 +566,26 @@ class FlowGuidedKrylovPipeline:
                 "No basis available. Run extract_and_select_basis() first."
             )
 
+        _VALID_MODES = {"sqd", "skqd", "skqd_quantum", "classical_krylov"}
+        if cfg.subspace_mode not in _VALID_MODES:
+            logger.warning(
+                "Unknown subspace_mode %r, falling back to 'classical_krylov'. "
+                "Valid modes: %s",
+                cfg.subspace_mode,
+                ", ".join(sorted(_VALID_MODES)),
+            )
+
         if cfg.subspace_mode == "sqd":
             return self._run_sqd(nf_basis, progress)
-        elif cfg.subspace_mode == "skqd_quantum":
+        elif cfg.subspace_mode in ("skqd", "skqd_quantum"):
             return self._run_skqd_quantum(nf_basis, progress)
         else:
-            return self._run_skqd(nf_basis, progress)
+            return self._run_classical_krylov(nf_basis, progress)
 
-    def _run_skqd(self, basis: torch.Tensor, progress: bool = True) -> dict[str, Any]:
-        """Run classical SKQD (exact time evolution).
+    def _run_classical_krylov(
+        self, basis: torch.Tensor, progress: bool = True
+    ) -> dict[str, Any]:
+        """Run classical Krylov diagonalization (exact time evolution).
 
         Parameters
         ----------
@@ -556,7 +629,7 @@ class FlowGuidedKrylovPipeline:
             regularization=cfg.skqd_regularization,
         )
 
-        skqd = FlowGuidedSKQD(
+        skqd = FlowGuidedKrylovDiag(
             hamiltonian=self.hamiltonian,
             config=skqd_config,
             nf_basis=basis.cpu().long(),
@@ -564,9 +637,7 @@ class FlowGuidedKrylovPipeline:
 
         results = skqd.run_with_nf(progress=progress)
 
-        skqd_energy = results.get(
-            "best_stable_energy", results.get("energy", float("inf"))
-        )
+        skqd_energy = results.get("energy", float("inf"))
 
         self.results["skqd_results"] = results
         self.results["skqd_energy"] = skqd_energy

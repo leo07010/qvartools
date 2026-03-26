@@ -21,8 +21,8 @@ class PipelineConfig:
 
     Supports three subspace diagonalization modes:
 
-    - ``"skqd"``: Classical exact time evolution (no Trotter error).
-    - ``"skqd_quantum"``: Quantum circuit Trotterized evolution (CUDA-Q).
+    - ``"classical_krylov"``: Classical exact time evolution (no Trotter error).
+    - ``"skqd"``: Real SKQD via quantum circuit Trotterized evolution (CUDA-Q).
     - ``"sqd"``: IBM SQD sampling-based batch diagonalization.
 
     When ``skip_nf_training`` is ``True``, the pipeline operates in
@@ -76,7 +76,9 @@ class PipelineConfig:
     use_perturbative_selection : bool
         Use CIPSI-style perturbative selection instead of residual.
     subspace_mode : str
-        Subspace diag backend: ``"skqd"``, ``"skqd_quantum"``, or ``"sqd"``.
+        Subspace diag backend: ``"classical_krylov"`` (default, exact time
+        evolution), ``"skqd"`` (CUDA-Q Trotterized circuits),
+        ``"skqd_quantum"`` (alias for ``"skqd"``), or ``"sqd"``.
     sqd_num_batches : int
         Number of random batches for SQD.
     sqd_batch_size : int
@@ -140,6 +142,9 @@ class PipelineConfig:
     # --- Flow type ---
     use_particle_conserving_flow: bool = True
 
+    # --- NQS model selection ---
+    nqs_type: str = "dense"  # "dense", "signed", "complex", "rbm", "transformer"
+
     # --- NF-NQS architecture ---
     nf_hidden_dims: list[int] = field(default_factory=lambda: [256, 256])
     nqs_hidden_dims: list[int] = field(default_factory=lambda: [256, 256, 256, 256])
@@ -170,7 +175,7 @@ class PipelineConfig:
     use_perturbative_selection: bool = True
 
     # --- Subspace diagonalization mode ---
-    subspace_mode: str = "skqd"  # "skqd", "skqd_quantum", or "sqd"
+    subspace_mode: str = "classical_krylov"  # "classical_krylov", "skqd", "sqd"
 
     # --- SQD-specific parameters ---
     sqd_num_batches: int = 5

@@ -385,10 +385,10 @@ class SKQDConfig:
     regularization: float = 1e-8
 ```
 
-### `SampleBasedKrylovDiagonalization`
+### `ClassicalKrylovDiagonalization`
 
 ```python
-SampleBasedKrylovDiagonalization(
+ClassicalKrylovDiagonalization(
     hamiltonian: Hamiltonian,
     config: SKQDConfig,
     initial_state: np.ndarray | None = None,
@@ -401,10 +401,10 @@ Core SKQD solver. Constructs Krylov states via time evolution, samples configura
 
 - `run() -> tuple[ndarray, dict]` -- Run SKQD. Returns `(eigenvalues, info_dict)`.
 
-### `FlowGuidedSKQD`
+### `FlowGuidedKrylovDiag`
 
 ```python
-FlowGuidedSKQD(
+FlowGuidedKrylovDiag(
     hamiltonian: Hamiltonian,
     config: SKQDConfig,
     nf_basis: Tensor,

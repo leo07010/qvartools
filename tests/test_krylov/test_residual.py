@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 import torch
 
-from qvartools.hamiltonians import HeisenbergHamiltonian
 from qvartools.krylov.expansion.residual_expansion import (
     ResidualBasedExpander,
     ResidualExpansionConfig,
@@ -18,12 +17,6 @@ from qvartools.krylov.expansion.residual_expansion import (
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture()
-def heisenberg_4():
-    """4-site periodic Heisenberg model."""
-    return HeisenbergHamiltonian(num_spins=4, Jx=1.0, Jy=1.0, Jz=1.0, periodic=True)
 
 
 @pytest.fixture()

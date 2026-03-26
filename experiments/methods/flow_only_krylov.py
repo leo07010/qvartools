@@ -1,7 +1,7 @@
 """NF-only SKQD --- NF basis -> Krylov (no Direct-CI merge).
 
 Pipeline: Trains NF-NQS, then REPLACES essential configs with the
-NF-only basis (no HF+S+D merge). Uses subspace_mode="skqd" for
+NF-only basis (no HF+S+D merge). Uses subspace_mode="classical_krylov" for
 Krylov time evolution on the purely NF-sampled basis.
 
 This tests how well the normalizing flow alone can discover the
@@ -133,7 +133,7 @@ def main() -> None:
     # --- Configure pipeline: NF training + SKQD ---
     pipe_config = PipelineConfig(
         skip_nf_training=False,
-        subspace_mode="skqd",
+        subspace_mode="classical_krylov",
         teacher_weight=teacher_weight,
         physics_weight=physics_weight,
         entropy_weight=entropy_weight,

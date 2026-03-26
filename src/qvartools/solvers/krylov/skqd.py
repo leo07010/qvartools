@@ -147,7 +147,7 @@ class SKQDSolver(Solver):
             PhysicsGuidedConfig,
             PhysicsGuidedFlowTrainer,
         )
-        from qvartools.krylov import FlowGuidedSKQD, SKQDConfig
+        from qvartools.krylov import FlowGuidedKrylovDiag, SKQDConfig
         from qvartools.nqs import DenseNQS
 
         t_start = time.perf_counter()
@@ -185,7 +185,7 @@ class SKQDSolver(Solver):
 
         # --- Step 3: Run flow-guided SKQD ---
         skqd_cfg = SKQDConfig(**self.skqd_config)
-        skqd = FlowGuidedSKQD(
+        skqd = FlowGuidedKrylovDiag(
             hamiltonian=hamiltonian,
             config=skqd_cfg,
             nf_basis=nf_basis,

@@ -3,7 +3,7 @@
 Pipeline: Generates HF + singles + doubles deterministically (no NF
 training), then applies SKQD Krylov subspace diagonalization.
 
-Uses skip_nf_training=True with subspace_mode="skqd". Straight-line:
+Uses skip_nf_training=True with subspace_mode="classical_krylov". Straight-line:
 train_flow_nqs() -> extract_and_select_basis() -> run_subspace_diag().
 """
 
@@ -110,7 +110,7 @@ def main() -> None:
     # --- Configure pipeline: Direct-CI + SKQD ---
     pipeline_config = PipelineConfig(
         skip_nf_training=True,
-        subspace_mode="skqd",
+        subspace_mode="classical_krylov",
         device=device,
         **skqd_p,
     )
