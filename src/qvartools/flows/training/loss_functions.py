@@ -20,6 +20,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
+from qvartools._utils.hashing.connection_cache import ConnectionCache
 from qvartools.hamiltonians.hamiltonian import Hamiltonian
 
 __all__ = [
@@ -29,81 +30,6 @@ __all__ = [
     "compute_entropy_loss",
     "compute_local_energy",
 ]
-
-
-# ---------------------------------------------------------------------------
-# Connection cache
-# ---------------------------------------------------------------------------
-
-
-class ConnectionCache:
-    """LRU-style cache for Hamiltonian connection lookups.
-
-    Stores the result of ``hamiltonian.get_connections(config)`` keyed
-    by the configuration as a tuple of integers.  Evicts the oldest
-    entries when ``max_size`` is exceeded.
-
-    Parameters
-    ----------
-    max_size : int
-        Maximum number of cached entries (default ``100000``).
-
-    Attributes
-    ----------
-    max_size : int
-        Capacity limit.
-    """
-
-    def __init__(self, max_size: int = 100000) -> None:
-        self.max_size: int = max_size
-        self._cache: dict[tuple, tuple[torch.Tensor, torch.Tensor]] = {}
-
-    def get(
-        self,
-        config: torch.Tensor,
-        hamiltonian: Hamiltonian,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Retrieve connections for *config*, computing and caching if absent.
-
-        Parameters
-        ----------
-        config : torch.Tensor
-            Single configuration, shape ``(num_sites,)``.
-        hamiltonian : Hamiltonian
-            The Hamiltonian to query for connections.
-
-        Returns
-        -------
-        connected_configs : torch.Tensor
-            Connected configurations, shape ``(n_conn, num_sites)``.
-        matrix_elements : torch.Tensor
-            Corresponding matrix elements, shape ``(n_conn,)``.
-        """
-        key = tuple(config.long().tolist())
-        if key in self._cache:
-            return self._cache[key]
-
-        connected, elements = hamiltonian.get_connections(config)
-        if len(self._cache) >= self.max_size:
-            # Evict oldest entry
-            oldest_key = next(iter(self._cache))
-            del self._cache[oldest_key]
-        self._cache[key] = (connected, elements)
-        return connected, elements
-
-    def clear(self) -> None:
-        """Remove all cached entries."""
-        self._cache.clear()
-
-    def __len__(self) -> int:
-        """Return the number of cached entries.
-
-        Returns
-        -------
-        int
-            Current number of entries in the cache.
-        """
-        return len(self._cache)
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +95,9 @@ def compute_local_energy(
         config_cpu = configs_cpu[idx]
 
         if connection_cache is not None:
-            connected, elements = connection_cache.get(config_cpu, hamiltonian)
+            connected, elements = connection_cache.get_or_compute(
+                config_cpu, hamiltonian
+            )
         else:
             connected, elements = hamiltonian.get_connections(config_cpu)
 
