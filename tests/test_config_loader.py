@@ -19,7 +19,12 @@ pytest.importorskip("yaml")
 # Make experiments/ importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "experiments"))
 
-from config_loader import _get_explicit_cli_args, create_base_parser, load_config
+from config_loader import (
+    _get_explicit_cli_args,
+    _load_yaml,
+    create_base_parser,
+    load_config,
+)
 
 
 class TestGetExplicitCliArgs:
@@ -135,3 +140,42 @@ class TestLoadConfig:
         with mock.patch("sys.argv", ["test", "--verbose"]):
             _, config = load_config(parser)
         assert config["verbose"] is True
+
+    def test_namespace_reflects_merged_config(self, tmp_path):
+        """args namespace is updated to match the final merged config."""
+        cfg_file = tmp_path / "test.yaml"
+        cfg_file.write_text("device: cuda\n")
+        parser = create_base_parser("test")
+        with mock.patch("sys.argv", ["test", "--config", str(cfg_file)]):
+            args, _ = load_config(parser)
+        # device came from YAML, not CLI
+        assert args.device == "cuda"
+
+
+class TestLoadYaml:
+    """Tests for _load_yaml error handling."""
+
+    def test_file_not_found(self, tmp_path):
+        """Raises FileNotFoundError for nonexistent path."""
+        with pytest.raises(FileNotFoundError, match="Config file not found"):
+            _load_yaml(str(tmp_path / "nonexistent.yaml"))
+
+    def test_empty_yaml_returns_empty_dict(self, tmp_path):
+        """Empty YAML file returns {}."""
+        cfg = tmp_path / "empty.yaml"
+        cfg.write_text("")
+        assert _load_yaml(str(cfg)) == {}
+
+    def test_non_dict_yaml_raises_value_error(self, tmp_path):
+        """YAML with a list at top level raises ValueError."""
+        cfg = tmp_path / "list.yaml"
+        cfg.write_text("- item1\n- item2\n")
+        with pytest.raises(ValueError, match="Expected a YAML mapping"):
+            _load_yaml(str(cfg))
+
+    def test_valid_yaml_returns_dict(self, tmp_path):
+        """Valid YAML mapping is returned as dict."""
+        cfg = tmp_path / "valid.yaml"
+        cfg.write_text("molecule: lih\nmax_epochs: 200\n")
+        result = _load_yaml(str(cfg))
+        assert result == {"molecule": "lih", "max_epochs": 200}

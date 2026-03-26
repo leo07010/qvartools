@@ -15,10 +15,13 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import logging
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Defaults
@@ -102,6 +105,7 @@ def load_config(
     """
     args = parser.parse_args()
     explicitly_provided = _get_explicit_cli_args(parser)
+    logger.debug("Explicitly provided CLI args: %s", explicitly_provided)
 
     # Start with built-in defaults
     config: dict[str, Any] = dict(_DEFAULTS)
@@ -110,6 +114,7 @@ def load_config(
     if args.config is not None:
         yaml_values = _load_yaml(args.config)
         config.update(yaml_values)
+        logger.info("Loaded %d keys from %s", len(yaml_values), args.config)
 
     # Layer explicit CLI args on top (highest precedence)
     args_dict = vars(args)
@@ -120,6 +125,7 @@ def load_config(
     for key, value in config.items():
         setattr(args, key, value)
 
+    logger.debug("Final merged config: %s", config)
     return args, config
 
 
@@ -148,6 +154,7 @@ def _load_yaml(path: str) -> dict[str, Any]:
         data = yaml.safe_load(fh)
 
     if data is None:
+        logger.debug("YAML file %s is empty, returning defaults", resolved)
         return {}
     if not isinstance(data, dict):
         raise ValueError(
