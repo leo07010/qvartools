@@ -125,8 +125,18 @@ class ConnectionCache:
         -------
         torch.Tensor
             Integer hashes, shape ``(n_configs,)``, dtype ``int64``.
+
+        Raises
+        ------
+        ValueError
+            If ``n_sites`` exceeds 63 (int64 overflow).
         """
         n_sites = configs.shape[1]
+        if n_sites > self._MAX_SITES_INT64:
+            raise ValueError(
+                f"ConnectionCache supports at most {self._MAX_SITES_INT64} sites "
+                f"(got {n_sites}). Use config_integer_hash for larger systems."
+            )
         powers = self._get_powers(n_sites, configs.device)
         return configs.to(torch.int64) @ powers
 
