@@ -119,3 +119,48 @@ class TestDavidsonSolver:
         solver = DavidsonSolver()
         with pytest.raises(ValueError, match="exceeds matrix dimension"):
             solver.solve(H, k=5)
+
+
+class TestAdaptiveDispatch:
+    """Tests for size-based adaptive solver selection in solve_generalized_eigenvalue."""
+
+    def test_small_uses_dense(self) -> None:
+        """Matrix n=50 should use dense eigh and give correct result."""
+        rng = np.random.default_rng(42)
+        A = rng.standard_normal((50, 50))
+        H = A + A.T
+        S = np.eye(50)
+        vals, vecs = solve_generalized_eigenvalue(H, S, k=2)
+        numpy_vals = np.sort(np.linalg.eigvalsh(H))
+        np.testing.assert_allclose(vals, numpy_vals[:2], atol=1e-8)
+
+    def test_medium_uses_davidson(self) -> None:
+        """Matrix n=800 with davidson_threshold=500 should use Davidson.
+
+        Verify correctness: eigenvalues match dense solve.
+        """
+        rng = np.random.default_rng(42)
+        A = rng.standard_normal((800, 800))
+        H = A + A.T
+        S = np.eye(800)
+        vals, _ = solve_generalized_eigenvalue(H, S, k=2, davidson_threshold=500)
+        numpy_vals = np.sort(np.linalg.eigvalsh(H))
+        np.testing.assert_allclose(vals, numpy_vals[:2], atol=1e-4)
+
+    def test_davidson_threshold_parameter_exists(self) -> None:
+        """solve_generalized_eigenvalue should accept davidson_threshold."""
+        H = np.diag([1.0, 2.0, 3.0])
+        S = np.eye(3)
+        # Should not raise TypeError
+        vals, _ = solve_generalized_eigenvalue(H, S, k=1, davidson_threshold=500)
+        assert abs(vals[0] - 1.0) < 1e-10
+
+    def test_below_threshold_skips_davidson(self) -> None:
+        """Matrix smaller than davidson_threshold should use dense."""
+        rng = np.random.default_rng(42)
+        A = rng.standard_normal((100, 100))
+        H = A + A.T
+        S = np.eye(100)
+        vals, _ = solve_generalized_eigenvalue(H, S, k=2, davidson_threshold=500)
+        numpy_vals = np.sort(np.linalg.eigvalsh(H))
+        np.testing.assert_allclose(vals, numpy_vals[:2], atol=1e-8)

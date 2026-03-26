@@ -52,11 +52,21 @@ def solve_generalized_eigenvalue(
     k: int = 1,
     which: str = "SA",
     use_gpu: bool = False,
+    davidson_threshold: int = 500,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Solve the generalized eigenvalue problem Hv = ESv.
 
-    Dispatches to the appropriate backend depending on matrix format and
-    whether GPU acceleration is requested.
+    Dispatches to the appropriate backend depending on matrix format,
+    size, and whether GPU acceleration is requested.
+
+    Solver selection (from highest to lowest priority):
+
+    1. **GPU** — if *use_gpu* is ``True`` and CuPy is available.
+    2. **Sparse** — if *H* or *S* is a SciPy sparse matrix.
+    3. **Davidson** — if the matrix dimension ``n`` exceeds
+       *davidson_threshold* (iterative, much faster than dense for
+       large systems when only a few eigenvalues are needed).
+    4. **Dense** — full eigendecomposition via ``scipy.linalg.eigh``.
 
     Parameters
     ----------
@@ -74,6 +84,10 @@ def solve_generalized_eigenvalue(
     use_gpu : bool, optional
         If ``True``, attempt to use CuPy for GPU-accelerated computation.
         Falls back to CPU if CuPy is unavailable.
+    davidson_threshold : int, optional
+        Minimum matrix dimension above which the Davidson iterative
+        solver is preferred over full dense decomposition (default
+        ``500``).  Ignored when the matrix is sparse.
 
     Returns
     -------
@@ -121,6 +135,10 @@ def solve_generalized_eigenvalue(
     if is_sparse and k < n - 1:
         return _solve_sparse(H, S, k, which)
 
+    # For large dense matrices, use Davidson (much faster than full eigh)
+    if n > davidson_threshold and k < n:
+        return _solve_davidson(H, S, k)
+
     return _solve_dense(H, S, k)
 
 
@@ -153,6 +171,72 @@ def _solve_dense(
     eigenvalues, eigenvectors = scipy.linalg.eigh(H_dense, S_dense)
     order = np.argsort(eigenvalues)
     return eigenvalues[order[:k]], eigenvectors[:, order[:k]]
+
+
+def _solve_davidson(
+    H: _MatrixLike,
+    S: _MatrixLike,
+    k: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Solve using the Davidson iterative eigensolver.
+
+    For the generalized case (S != I) the problem is transformed to
+    standard form via Cholesky factorization of S before applying
+    Davidson, then the eigenvectors are back-transformed.
+
+    Parameters
+    ----------
+    H : array-like
+        Hamiltonian matrix.
+    S : array-like
+        Overlap matrix.
+    k : int
+        Number of eigenvalues to return.
+
+    Returns
+    -------
+    eigenvalues : np.ndarray
+        Shape ``(k,)``.
+    eigenvectors : np.ndarray
+        Shape ``(n, k)``.
+    """
+    from qvartools.diag.eigen.davidson import DavidsonSolver
+
+    H_dense = (
+        H.toarray() if scipy.sparse.issparse(H) else np.asarray(H, dtype=np.float64)
+    )
+    S_dense = (
+        S.toarray() if scipy.sparse.issparse(S) else np.asarray(S, dtype=np.float64)
+    )
+
+    # Check if S is identity (standard eigenvalue problem)
+    is_identity = np.allclose(S_dense, np.eye(S_dense.shape[0]), atol=1e-12)
+
+    if is_identity:
+        H_work = H_dense
+    else:
+        # Transform to standard form: L^{-1} H L^{-T} where S = L L^T
+        try:
+            L = scipy.linalg.cholesky(S_dense, lower=True)
+            L_inv = scipy.linalg.solve_triangular(L, np.eye(L.shape[0]), lower=True)
+            H_work = L_inv @ H_dense @ L_inv.T
+        except scipy.linalg.LinAlgError:
+            logger.warning("Cholesky failed for S; falling back to dense eigh.")
+            return _solve_dense(H, S, k)
+
+    solver = DavidsonSolver(max_iterations=200, tolerance=1e-8)
+    try:
+        eigenvalues, eigenvectors = solver.solve(H_work, k=k)
+    except (RuntimeError, ValueError):
+        logger.warning("Davidson solver failed; falling back to dense eigh.")
+        return _solve_dense(H, S, k)
+
+    if not is_identity:
+        # Back-transform eigenvectors: v_original = L^{-T} v_standard
+        eigenvectors = L_inv.T @ eigenvectors
+
+    logger.debug("Davidson solver used for n=%d, k=%d", H_dense.shape[0], k)
+    return eigenvalues, eigenvectors
 
 
 def _solve_sparse(
