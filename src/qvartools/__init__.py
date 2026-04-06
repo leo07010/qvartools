@@ -1,67 +1,35 @@
 """
-qvartools — Quantum Variational Toolkit
-========================================
+qvartools — HI+NQS+SQD v3
+==========================
 
-A unified Python package for quantum variational methods applied to
-molecular ground-state energy estimation. Consolidates normalizing-flow
-guided neural quantum states (NF-NQS), sample-based quantum
-diagonalization (SQD), and sample-based Krylov quantum diagonalization
-(SKQD) into reusable, well-scoped modules.
+Self-consistent neural quantum state + IBM SQD ground-state solver.
 
 Subpackages
 -----------
 hamiltonians
-    Hamiltonian representations (molecular, spin) with efficient matrix
-    element computation.
+    Molecular Hamiltonian with Slater-Condon matrix elements (PySCF).
 nqs
-    Neural quantum state architectures (dense, complex, RBM, transformer).
-flows
-    Normalizing flows for configuration sampling, including
-    particle-conserving variants and physics-guided training.
-krylov
-    Krylov subspace methods: SKQD, residual expansion, basis sampling,
-    and quantum-circuit variants.
-diag
-    Subspace diagonalization: eigensolvers, diversity selection,
-    projected Hamiltonian construction.
+    Autoregressive Transformer NQS (Psiformer-style).
 solvers
-    High-level solver interfaces (FCI, CCSD, SQD, SKQD, iterative).
-samplers
-    Configuration samplers (NF, Trotter, CUDA-Q).
+    Reference solvers: FCI, CCSD, CIPSI/SCI.
 molecules
-    Molecular system registry and integral computation.
+    Molecular system registry (H2O, NH3, N2, C2H2, C2H4, CAS systems).
 methods
-    End-to-end method pipelines (HI-NQS-SQD, HI-NQS-SKQD, NQS-SQD,
-    NQS-SKQD).
-_utils
-    Internal utilities (caching, GPU helpers, format conversion).
+    HI+NQS+SQD v3 end-to-end pipeline.
 """
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 from qvartools._logging import configure_logging, get_logger
-from qvartools.pipeline import (
-    FlowGuidedKrylovPipeline,
-    PipelineConfig,
-    run_molecular_benchmark,
-)
+from qvartools.methods.nqs import run_hi_nqs_sqd, HINQSSQDConfig
+from qvartools.molecules import get_molecule
 
-# Auto-configure logging from environment on import
 configure_logging()
 
 __all__ = [
-    "hamiltonians",
-    "nqs",
-    "flows",
-    "krylov",
-    "diag",
-    "solvers",
-    "samplers",
-    "molecules",
-    "methods",
-    "PipelineConfig",
-    "FlowGuidedKrylovPipeline",
-    "run_molecular_benchmark",
+    "run_hi_nqs_sqd",
+    "HINQSSQDConfig",
+    "get_molecule",
     "configure_logging",
     "get_logger",
 ]

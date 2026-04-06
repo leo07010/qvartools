@@ -1,6 +1,0 @@
-# 09_vqe: CUDA-QX VQE pipelines
-
-molecule: h2
-optimizer: cobyla
-max_iterations: 200
-target: nvidia
