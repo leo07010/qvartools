@@ -14,13 +14,15 @@ PT2 score: score(x) = |⟨x|H|Φ₀⟩|² / |E₀ - H_xx|
 
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 import torch
-from qiskit_addon_sqd.fermion import solve_fermion
 
-from qvartools.nqs.transformer.autoregressive import AutoregressiveTransformer
 from qvartools.solvers.solver import SolverResult
+from qvartools.nqs.transformer.autoregressive import AutoregressiveTransformer
+
+from qiskit_addon_sqd.fermion import solve_fermion
 
 
 @dataclass
@@ -33,7 +35,7 @@ class HINQSSQDConfig:
     n_samples: int = 5000
 
     # PT2 selection
-    top_k: int = 2000  # keep top-k configs per iteration
+    top_k: int = 2000           # keep top-k configs per iteration
     max_basis_size: int = 10000  # total basis cap (evict by PT2 score)
 
     # NQS update
@@ -50,9 +52,8 @@ class HINQSSQDConfig:
     final_temperature: float = 0.3
 
 
-def run_hi_nqs_sqd(
-    hamiltonian, mol_info, config: HINQSSQDConfig | None = None
-) -> SolverResult:
+def run_hi_nqs_sqd(hamiltonian, mol_info,
+                   config: Optional[HINQSSQDConfig] = None) -> SolverResult:
     t0 = time.time()
     cfg = config or HINQSSQDConfig()
 
@@ -83,21 +84,15 @@ def run_hi_nqs_sqd(
         embed, heads, layers = 256, 8, 10
 
     nqs = AutoregressiveTransformer(
-        n_orbitals=n_orb,
-        n_alpha=n_alpha,
-        n_beta=n_beta,
-        embed_dim=embed,
-        n_heads=heads,
-        n_layers=layers,
+        n_orbitals=n_orb, n_alpha=n_alpha, n_beta=n_beta,
+        embed_dim=embed, n_heads=heads, n_layers=layers,
     ).to(device)
 
     optimizer = torch.optim.Adam(nqs.parameters(), lr=cfg.nf_lr)
 
     n_params = sum(p.numel() for p in nqs.parameters())
-    print(
-        f"    HI+NQS+SQD v3 (GPU={device}): arch={embed}/{heads}/{layers}, "
-        f"params={n_params:,}, samples={cfg.n_samples}, top_k={cfg.top_k}"
-    )
+    print(f"    HI+NQS+SQD v3 (GPU={device}): arch={embed}/{heads}/{layers}, "
+          f"params={n_params:,}, samples={cfg.n_samples}, top_k={cfg.top_k}")
 
     # State
     energy_history = []
@@ -108,9 +103,9 @@ def run_hi_nqs_sqd(
     converge_count = 0
 
     # Basis management
-    cumulative_bs = None  # IBM format bool array
+    cumulative_bs = None       # IBM format bool array
     cumulative_hashes = set()
-    cumulative_scores = {}  # hash → PT2 score
+    cumulative_scores = {}     # hash → PT2 score
 
     # Previous eigenvector info (for PT2 scoring from iter 1+)
     prev_sci_state = None
@@ -121,9 +116,8 @@ def run_hi_nqs_sqd(
         iter_t0 = time.time()
 
         progress = iteration / max(cfg.max_iterations - 1, 1)
-        temperature = cfg.initial_temperature + progress * (
-            cfg.final_temperature - cfg.initial_temperature
-        )
+        temperature = (cfg.initial_temperature
+                       + progress * (cfg.final_temperature - cfg.initial_temperature))
 
         # =====================================================
         # Step 1: NQS sampling
@@ -166,7 +160,7 @@ def run_hi_nqs_sqd(
             # (will be rescored with PT2 at Iter 1)
             diag_configs = torch.stack([c[2] for c in new_candidates])
             diag_e = hamiltonian.diagonal_elements_batch(diag_configs).cpu().numpy()
-            top_idx = np.argsort(diag_e)[: cfg.top_k]  # lowest energy = best
+            top_idx = np.argsort(diag_e)[:cfg.top_k]  # lowest energy = best
 
             for idx in top_idx:
                 bs_row, h, _ = new_candidates[idx]
@@ -194,9 +188,7 @@ def run_hi_nqs_sqd(
                 all_configs = []
 
                 # Existing basis → convert back to config tensors
-                existing_configs = _ibm_format_to_configs(
-                    cumulative_bs, n_orb, n_qubits
-                )
+                existing_configs = _ibm_format_to_configs(cumulative_bs, n_orb, n_qubits)
                 for i in range(len(cumulative_bs)):
                     all_bs.append(cumulative_bs[i])
                     all_hashes.append(tuple(cumulative_bs[i].tolist()))
@@ -217,11 +209,8 @@ def run_hi_nqs_sqd(
                 diag_e = hamiltonian.diagonal_elements_batch(diag_configs).cpu().numpy()
 
                 coupling = _compute_coupling_to_ground_state(
-                    all_as_candidates,
-                    prev_sci_state,
-                    hamiltonian,
-                    n_orb,
-                    n_qubits,
+                    all_as_candidates, prev_sci_state, hamiltonian,
+                    n_orb, n_qubits,
                 )
 
                 scores = np.zeros(len(all_as_candidates))
@@ -248,16 +237,11 @@ def run_hi_nqs_sqd(
                 # === Iter 2+: only score new candidates ===
                 if new_candidates:
                     diag_configs = torch.stack([c[2] for c in new_candidates])
-                    diag_e = (
-                        hamiltonian.diagonal_elements_batch(diag_configs).cpu().numpy()
-                    )
+                    diag_e = hamiltonian.diagonal_elements_batch(diag_configs).cpu().numpy()
 
                     coupling = _compute_coupling_to_ground_state(
-                        new_candidates,
-                        prev_sci_state,
-                        hamiltonian,
-                        n_orb,
-                        n_qubits,
+                        new_candidates, prev_sci_state, hamiltonian,
+                        n_orb, n_qubits,
                     )
 
                     scores = np.zeros(len(new_candidates))
@@ -267,7 +251,7 @@ def run_hi_nqs_sqd(
                             denom = 1e-12
                         scores[i] = coupling[i] ** 2 / denom
 
-                    top_idx = np.argsort(scores)[::-1][: cfg.top_k]
+                    top_idx = np.argsort(scores)[::-1][:cfg.top_k]
 
                     for idx in top_idx:
                         bs_row, h, _ = new_candidates[idx]
@@ -288,13 +272,11 @@ def run_hi_nqs_sqd(
         # Evict lowest-scoring configs if over max_basis_size
         if cfg.max_basis_size > 0 and len(cumulative_bs) > cfg.max_basis_size:
             # Score all configs, keep top max_basis_size
-            all_scores = np.array(
-                [
-                    cumulative_scores.get(tuple(cumulative_bs[i].tolist()), 0.0)
-                    for i in range(len(cumulative_bs))
-                ]
-            )
-            keep_idx = np.argsort(all_scores)[::-1][: cfg.max_basis_size]
+            all_scores = np.array([
+                cumulative_scores.get(tuple(cumulative_bs[i].tolist()), 0.0)
+                for i in range(len(cumulative_bs))
+            ])
+            keep_idx = np.argsort(all_scores)[::-1][:cfg.max_basis_size]
             keep_idx.sort()
             n_evicted = len(cumulative_bs) - len(keep_idx)
             cumulative_bs = cumulative_bs[keep_idx]
@@ -309,10 +291,7 @@ def run_hi_nqs_sqd(
 
         try:
             e, sci_state, occ, spin_sq = solve_fermion(
-                cumulative_bs,
-                hcore,
-                eri,
-                spin_sq=0,
+                cumulative_bs, hcore, eri, spin_sq=0,
             )
             e0 = e + nuclear_repulsion
             current_e0 = e0
@@ -334,16 +313,9 @@ def run_hi_nqs_sqd(
         # =====================================================
         update_t0 = time.time()
         _update_nqs(
-            nqs,
-            optimizer,
-            cumulative_bs,
-            e0,
-            sci_state,
-            hamiltonian,
-            cfg,
-            device,
-            n_orb,
-            n_qubits,
+            nqs, optimizer, cumulative_bs, e0,
+            sci_state, hamiltonian, cfg, device,
+            n_orb, n_qubits,
         )
         update_time = time.time() - update_t0
 
@@ -359,13 +331,11 @@ def run_hi_nqs_sqd(
         else:
             converge_count = 0
 
-        print(
-            f"    Iter {iteration:>3d}: E={e0:.10f}, "
-            f"basis={len(cumulative_bs):>6d}(+{n_selected}, -{n_evicted}), "
-            f"ΔE={delta_e:.2e}, "
-            f"t={iter_time:.1f}s [samp={sample_time:.1f} pt2={score_time:.1f} "
-            f"sqd={sqd_time:.1f} upd={update_time:.1f}]"
-        )
+        print(f"    Iter {iteration:>3d}: E={e0:.10f}, "
+              f"basis={len(cumulative_bs):>6d}(+{n_selected}, -{n_evicted}), "
+              f"ΔE={delta_e:.2e}, "
+              f"t={iter_time:.1f}s [samp={sample_time:.1f} pt2={score_time:.1f} "
+              f"sqd={sqd_time:.1f} upd={update_time:.1f}]")
 
         if converge_count >= cfg.convergence_window:
             converged = True
@@ -388,9 +358,8 @@ def run_hi_nqs_sqd(
     )
 
 
-def _compute_coupling_to_ground_state(
-    new_candidates, sci_state, hamiltonian, n_orb, n_qubits
-):
+def _compute_coupling_to_ground_state(new_candidates, sci_state, hamiltonian,
+                                       n_orb, n_qubits):
     """Compute |⟨x|H|Φ₀⟩| for each candidate config.
 
     Uses the Hamiltonian's get_connections to find which basis configs
@@ -416,9 +385,7 @@ def _compute_coupling_to_ground_state(
         # Get H-connections from this config
         config_gpu = config_tensor.unsqueeze(0).to(hamiltonian.device)
         try:
-            connected, elements, _ = hamiltonian.get_connections_vectorized_batch(
-                config_gpu
-            )
+            connected, elements, _ = hamiltonian.get_connections_vectorized_batch(config_gpu)
 
             # For each connected config, check if it's in the eigenvector
             total_coupling = 0.0
@@ -429,9 +396,9 @@ def _compute_coupling_to_ground_state(
                 b_int = 0
                 for k in range(n_orb):
                     if conn[k]:
-                        a_int |= 1 << k
+                        a_int |= (1 << k)
                     if conn[k + n_orb]:
-                        b_int |= 1 << k
+                        b_int |= (1 << k)
 
                 c = coeff_map.get((a_int, b_int), 0.0)
                 if c != 0.0:
@@ -444,18 +411,9 @@ def _compute_coupling_to_ground_state(
     return coupling
 
 
-def _update_nqs(
-    nqs,
-    optimizer,
-    cumulative_bs,
-    e0,
-    sci_state,
-    hamiltonian,
-    cfg,
-    device,
-    n_orb,
-    n_qubits,
-):
+def _update_nqs(nqs, optimizer, cumulative_bs, e0,
+                sci_state, hamiltonian, cfg, device,
+                n_orb, n_qubits):
     """Update NQS using eigenvector teacher + REINFORCE."""
     configs = _ibm_format_to_configs(cumulative_bs, n_orb, n_qubits)
     n_total = len(configs)
@@ -484,9 +442,8 @@ def _update_nqs(
 
     with torch.no_grad():
         diag_e = hamiltonian.diagonal_elements_batch(configs)
-        diag_e_t = torch.tensor(
-            np.asarray(diag_e, dtype=np.float64), dtype=torch.float32, device=device
-        )
+        diag_e_t = torch.tensor(np.asarray(diag_e, dtype=np.float64),
+                                dtype=torch.float32, device=device)
         advantage = diag_e_t - e0
 
     max_batch = min(5000, n_total)
@@ -511,11 +468,9 @@ def _update_nqs(
         loss_energy = (batch_teacher * batch_advantage * log_probs).sum()
         loss_entropy = log_probs.mean()
 
-        loss = (
-            cfg.teacher_weight * loss_teacher
-            + cfg.energy_weight * loss_energy
-            + cfg.entropy_weight * loss_entropy
-        )
+        loss = (cfg.teacher_weight * loss_teacher
+                + cfg.energy_weight * loss_energy
+                + cfg.entropy_weight * loss_entropy)
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(nqs.parameters(), max_norm=1.0)
@@ -531,7 +486,7 @@ def _ibm_row_to_int(row, n_orb, is_alpha, n_qubits):
     offset = 0 if is_alpha else n_orb
     for j in range(n_orb):
         if row[offset + n_orb - 1 - j]:
-            val |= 1 << j
+            val |= (1 << j)
     return val
 
 
