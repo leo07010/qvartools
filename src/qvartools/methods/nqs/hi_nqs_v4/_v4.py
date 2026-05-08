@@ -99,7 +99,7 @@ def run_hi_nqs_sqd_v4(hamiltonian, mol_info,
     _mg_otf_hams = None
     if cfg.use_multi_gpu_on_the_fly_davidson and torch.cuda.is_available() \
             and torch.cuda.device_count() > 1:
-        from .multi_gpu_pt2 import visible_gpus, replicate_hamiltonian
+        from ._multi_gpu_pt2 import visible_gpus, replicate_hamiltonian
         devs = visible_gpus()
         print(f"    [v4 multi-GPU on-the-fly] replicating hamiltonian across "
               f"{len(devs)} GPUs ...", flush=True)
@@ -136,7 +136,7 @@ def run_hi_nqs_sqd_v4(hamiltonian, mol_info,
     multi_gpu_active = False
     hamiltonians = [hamiltonian]
     if cfg.use_multi_gpu and torch.cuda.is_available() and torch.cuda.device_count() > 1:
-        from .multi_gpu_pt2 import (
+        from ._multi_gpu_pt2 import (
             visible_gpus, replicate_hamiltonian,
             compute_coupling_multi_gpu, final_pt2_multi_gpu,
         )
@@ -195,7 +195,7 @@ def run_hi_nqs_sqd_v4(hamiltonian, mol_info,
     # --- Multi-temperature sampling ---
     _orig_sample_for_multi_t = None
     if cfg.multi_temperatures and len(cfg.multi_temperatures) > 0:
-        from .multi_temp_sampler import install_multi_temp_sampler
+        from ._multi_temp_sampler import install_multi_temp_sampler
         _orig_sample_for_multi_t = install_multi_temp_sampler(cfg.multi_temperatures)
         print(f"    [v4 multi-T sampling] T's = {list(cfg.multi_temperatures)}",
               flush=True)
@@ -203,7 +203,7 @@ def run_hi_nqs_sqd_v4(hamiltonian, mol_info,
     # --- MCMC sampling for NQS (replaces autoregressive forward) ---
     _orig_sample_for_mcmc = None
     if cfg.use_mcmc_sampling:
-        from .nqs_mcmc_sampler import install_mcmc_sampler
+        from ._nqs_mcmc_sampler import install_mcmc_sampler
         _orig_sample_for_mcmc = install_mcmc_sampler(
             n_chains=cfg.mcmc_n_chains,
             n_burnin=cfg.mcmc_n_burnin,
@@ -240,7 +240,7 @@ def run_hi_nqs_sqd_v4(hamiltonian, mol_info,
     if (cfg.use_multi_gpu_sampling
             and torch.cuda.is_available()
             and torch.cuda.device_count() > 1):
-        from .multi_gpu_nqs_sampler import install_multi_gpu_sampling
+        from ._multi_gpu_nqs_sampler import install_multi_gpu_sampling
         devs = [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
         print(f"    [v4 multi-GPU sampling] data-parallel NQS across {len(devs)} GPUs",
               flush=True)
@@ -256,16 +256,16 @@ def run_hi_nqs_sqd_v4(hamiltonian, mol_info,
         _v3._final_pt2_correction = orig_final_pt2
         _v3._update_nqs = orig_update_nqs
         if _sampling_state is not None:
-            from .multi_gpu_nqs_sampler import uninstall_multi_gpu_sampling
+            from ._multi_gpu_nqs_sampler import uninstall_multi_gpu_sampling
             uninstall_multi_gpu_sampling(_sampling_state)
         if _orig_sample_for_mcmc is not None:
-            from .nqs_mcmc_sampler import uninstall_mcmc_sampler
+            from ._nqs_mcmc_sampler import uninstall_mcmc_sampler
             uninstall_mcmc_sampler(_orig_sample_for_mcmc)
         if _orig_nqs_init is not None:
             from ._transformer import AutoregressiveTransformer
             AutoregressiveTransformer.__init__ = _orig_nqs_init
         if _orig_sample_for_multi_t is not None:
-            from .multi_temp_sampler import uninstall_multi_temp_sampler
+            from ._multi_temp_sampler import uninstall_multi_temp_sampler
             uninstall_multi_temp_sampler(_orig_sample_for_multi_t)
 
     result.method = "HI+NQS+SQD-v4"
